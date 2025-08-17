@@ -1,0 +1,267 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+// Les variables de couleur doivent idéalement être dans un fichier global, 
+// mais pour cet exemple, nous les mettons ici pour correspondre au sidebar.
+:host {
+  --bg-color: #F7F8FC;
+  --card-bg: #FFFFFF; // Fond blanc unifié
+  --border-color: #E5E7EB; // Bordure plus subtile et solide
+  --primary-color: #FF4D6A;
+  --primary-gradient: linear-gradient(135deg, #FF2D55, #FF9500);
+  --text-dark: #1F2937;
+  --text-normal: #374151;
+  --text-muted: #6B7280;
+  --font-family: 'Inter', sans-serif;
+  --shadow-color: rgba(100, 100, 150, 0.08);
+  --search-bg: #FFFFFF;
+  --notification-bg: #FF9500; // Orange vif pour la notification
+}
+
+.navbar-freelencer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  height: 80px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  font-family: var(--font-family);
+}
+
+.navbar-left {
+  flex: 1;
+  padding-right: 2rem;
+}
+
+.freelancer-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.banner-item {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  border: 1px solid #ffffff;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+  }
+}
+
+.banner-icon-wrapper {
+  margin-right: 1rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--primary-gradient);
+    opacity: 0.15;
+    z-index: 1;
+  }
+}
+
+.banner-icon {
+  font-size: 1.6rem;
+  position: relative;
+  z-index: 2;
+}
+
+.badge-item .banner-icon {
+  color: #FF9500;
+}
+
+.balance-item .banner-icon {
+  color: #FF2D55;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.banner-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+
+  .icon-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--text-normal);
+    cursor: pointer;
+    position: relative;
+    transition: color 0.3s ease;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    
+    &:hover {
+      color: var(--primary-color);
+      background-color: #fceef0;
+    }
+
+    &.notification-btn {
+      .notification-badge {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background-color: var(--notification-bg);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 600;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid var(--card-bg);
+      }
+    }
+  }
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  padding: 0.3rem;
+  border-radius: 30px;
+  transition: background-color 0.3s ease;
+  margin-left: 0.5rem;
+
+  &:hover {
+    background-color: var(--search-bg);
+  }
+
+  .user-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.8rem;
+    border: 2px solid transparent;
+    background: var(--primary-gradient);
+    padding: 2px;
+    box-shadow: 0 0 15px rgba(255, 45, 85, 0.3);
+  }
+
+  .user-menu-info {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    line-height: 1.3;
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-dark);
+    }
+    .user-role {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: capitalize;
+    }
+  }
+
+  .dropdown-icon {
+    margin-left: 1rem;
+    color: var(--text-muted);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    &.rotated {
+      transform: rotate(180deg);
+    }
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px var(--shadow-color);
+    border: 1px solid var(--border-color);
+    width: 200px;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+    transform-origin: top right;
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+    z-index: 1100;
+
+    &.show {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      visibility: visible;
+    }
+
+    a {
+      display: block;
+      padding: 0.8rem 1.2rem;
+      color: var(--text-normal);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: background-color 0.2s ease, color 0.2s ease;
+
+      &:hover {
+        background: var(--search-bg);
+        color: var(--text-dark);
+      }
+
+      &:first-of-type {
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+      }
+      &:last-of-type {
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        border-top: 1px solid var(--border-color);
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+<div class="sidebar" [class.collapsed]="isCollapsed$ | async">
+  <div class="sidebar-header">
+    <img src="assets/Logo.png" alt="Logo Forsa" class="logo" (click)="toggleSidebar()">
+  </div>
+  
+  <div class="sidebar-separator"></div>
+
+  <nav class="navigation">
+    <ul>
+      <li><a routerLink="/client/dashboard" [class.active]="isLinkActive('/client/dashboard')"><fa-icon [icon]="faTachometerAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Tableau de bord</span></a></li>
+      <li><a routerLink="/client/mes-missions" [class.active]="isLinkActive('/client/mes-missions')"><fa-icon [icon]="faFolder"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Mes missions</span></a></li>
+      <li><a routerLink="/client/freelances-interesses" [class.active]="isLinkActive('/client/freelances-interesses')"><fa-icon [icon]="faUsers"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Freelances intéressés</span></a></li>
+      <li><a routerLink="/client/explorer-freelances" [class.active]="isLinkActive('/client/explorer-freelances')"><fa-icon [icon]="faSearch"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Explorer les freelances</span></a></li>
+      <li><a routerLink="/client/messagerie" [class.active]="isLinkActive('/client/messagerie')"><fa-icon [icon]="faCommentDots"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Messagerie</span></a></li>
+    
+      <li><a routerLink="/client/paiements" [class.active]="isLinkActive('/client/paiements')"><fa-icon [icon]="faCreditCard"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Paiements</span></a></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    <ul>
+        <li><a routerLink="/client/aide" [class.active]="isLinkActive('/client/aide')"><fa-icon [icon]="faQuestionCircle"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Support / Aide</span></a></li>
+        <li><a (click)="logout()"><fa-icon [icon]="faSignOutAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Déconnexion</span></a></li>
+    </ul>
+  </div>
+</div>

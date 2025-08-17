@@ -1,0 +1,486 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:host {
+  // --- Design System "Promatch" ---
+  // Couleurs de base
+  --bg-color: #F7F8FC;
+  --card-bg: #ffffff;
+  --border-color: #E5E7EB;
+  --primary-color: #FF4D6A; // Rose-rouge vibrant (gardé)
+  --primary-gradient: linear-gradient(135deg, #FF2D55, #FF9500); // Orange-rose (gardé)
+
+  // Couleurs de texte
+  --text-dark: #1F2937;
+  --text-normal: #374151;
+  --text-muted: #6B7280;
+
+  // Éléments de formulaire
+  --input-bg: #F9FAFB;
+  --input-text: var(--text-dark);
+  --input-border-focus: var(--primary-color);
+  --button-text: #ffffff;
+
+  // Autres
+  --error-color: #EF4444;
+  --soft-shadow: 0 8px 16px rgba(0,0,0,0.05);
+  --hover-shadow: 0 12px 24px rgba(0,0,0,0.1);
+  --font-family: 'Inter', sans-serif;
+  
+  // Nouvelles variables pour les effets ultra modernes avec plus d'orange
+  --glass-bg: rgba(255, 255, 255, 0.1);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --neon-glow: 0 0 20px rgba(255, 77, 106, 0.3);
+  --input-focus-glow: 0 0 0 3px rgba(255, 77, 106, 0.2);
+  --button-hover-glow: 0 0 30px rgba(255, 45, 85, 0.4);
+  --mauve-accent: #8B5CF6; // Touche de mauve
+  --orange-accent: #FF9500; // Plus d'orange
+}
+
+.login-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+  background: linear-gradient(135deg, #F7F8FC 0%, #FFF5F0 50%, #F8F4FF 100%);
+  padding: 1rem;
+  font-family: var(--font-family);
+  position: relative;
+  overflow: hidden;
+
+  &::before, &::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.15;
+    pointer-events: none;
+    animation: float 6s ease-in-out infinite;
+  }
+
+  &::before {
+    width: 400px;
+    height: 400px;
+    background: linear-gradient(135deg, var(--orange-accent), var(--mauve-accent));
+    top: -150px;
+    left: -150px;
+    animation-delay: 0s;
+  }
+
+  &::after {
+    width: 350px;
+    height: 350px;
+    background: linear-gradient(135deg, var(--mauve-accent), var(--orange-accent));
+    bottom: -150px;
+    right: -150px;
+    animation-delay: 3s;
+  }
+}
+
+@keyframes float {
+  0%, 100% { 
+    transform: translate(0, 0) scale(1);
+    opacity: 0.15;
+  }
+  50% { 
+    transform: translate(20px, -20px) scale(1.1);
+    opacity: 0.25;
+  }
+}
+
+@keyframes move-blob-1 {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(40px, 60px) scale(1.2); }
+}
+
+@keyframes move-blob-2 {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-30px, -50px) scale(0.9); }
+}
+
+.login-panel {
+  width: 100%;
+  max-width: 460px;
+  background: var(--card-bg);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  z-index: 1;
+  border: 1px solid var(--border-color);
+  animation: fadeIn 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.back-link {
+  position: absolute;
+  top: 1.25rem;
+  left: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.5rem;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  z-index: 10;
+  cursor: pointer;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+    pointer-events: none;
+  }
+
+  span {
+    pointer-events: none;
+  }
+
+  &:hover {
+    color: var(--orange-accent);
+    transform: translateX(-3px);
+  }
+  
+  &:hover svg {
+    transform: translateX(-2px);
+  }
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.logo {
+  height: 80px;
+  margin-bottom: 1.5rem;
+  animation: fadeIn 0.8s ease-out 0.2s backwards;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 8px;
+
+  &:hover {
+    transform: scale(1.05) rotate(1deg);
+  }
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin: 0 0 0.5rem 0;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--orange-accent), #FF6B35);
+    border-radius: 2px;
+    animation: expandWidth 1.5s ease-out 0.5s forwards;
+  }
+}
+
+@keyframes expandWidth {
+  to { width: 60px; }
+}
+
+.subtitle {
+  font-size: 1rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 auto;
+  animation: fadeInUp 0.8s ease-out 0.4s backwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.input-group {
+  margin-bottom: 1.25rem;
+  position: relative;
+  animation: fadeInUp 0.8s ease-out 0.6s backwards;
+}
+
+.input-field {
+  display: flex;
+  align-items: center;
+  position: relative;
+  background-color: var(--input-bg);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  &:focus-within {
+    border-color: var(--orange-accent);
+    box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2);
+    transform: translateY(-1px);
+  }
+
+  &.is-invalid {
+    border-color: var(--error-color);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    animation: shake 0.5s ease-in-out;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.input-icon {
+  padding-left: 1rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+  }
+}
+
+.input-field:focus-within .input-icon {
+  color: var(--orange-accent);
+}
+
+.input-field:focus-within .input-icon svg {
+  transform: scale(1.1);
+}
+
+input {
+  width: 100%;
+  padding: 0.875rem;
+  padding-left: 0.75rem;
+  border: none;
+  background: transparent;
+  font-size: 1rem;
+  color: var(--input-text);
+  font-family: var(--font-family);
+  transition: all 0.3s ease;
+
+  &::placeholder {
+    color: var(--text-muted);
+    transition: color 0.3s ease;
+  }
+
+  &:focus {
+    outline: none;
+    
+    &::placeholder {
+      color: var(--orange-accent);
+    }
+  }
+}
+
+.password-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.875rem;
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+
+  &:hover {
+    color: var(--orange-accent);
+    transform: scale(1.1);
+  }
+
+  svg {
+    width: 20px;
+    height: 20px;
+    transition: transform 0.3s ease;
+  }
+}
+
+.form-options {
+  text-align: right;
+  margin-bottom: 1.25rem;
+  animation: fadeInUp 0.8s ease-out 0.8s backwards;
+}
+
+.forgot-password-link {
+  color: var(--orange-accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  padding: 0.25rem 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--orange-accent);
+    transition: width 0.3s ease;
+  }
+
+  &:hover {
+    transform: translateX(3px);
+    
+    &::after {
+      width: 100%;
+    }
+  }
+}
+
+.error-message {
+  color: var(--error-color);
+  font-size: 0.85rem;
+  padding-top: 0.5rem;
+  padding-left: 0.25rem;
+  animation: fadeInUp 0.5s ease-out;
+
+  &.server-error {
+    text-align: center;
+    background-color: rgba(239, 68, 68, 0.1);
+    padding: 0.75rem;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+    border-left: 4px solid var(--error-color);
+    animation: slideInRight 0.5s ease-out;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
+  color: var(--button-text);
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(255, 149, 0, 0.3);
+  position: relative;
+  overflow: hidden;
+  animation: fadeInUp 0.8s ease-out 1s backwards;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 10px 25px rgba(255, 149, 0, 0.4);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 4px 10px rgba(255, 149, 0, 0.3);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+.signup-link {
+  text-align: center;
+  margin-top: 1.75rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  animation: fadeInUp 0.8s ease-out 1.2s backwards;
+
+  a {
+    color: var(--orange-accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    position: relative;
+    padding: 0.25rem 0;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: var(--orange-accent);
+      transition: width 0.3s ease;
+    }
+
+    &:hover {
+      transform: translateX(3px);
+      
+      &::after {
+        width: 100%;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .login-panel {
+    padding: 2rem 1.5rem;
+  }
+  .title {
+    font-size: 1.8rem;
+  }
+  .subtitle {
+    font-size: 0.95rem;
+  }
+}

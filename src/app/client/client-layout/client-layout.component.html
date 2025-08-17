@@ -1,0 +1,7 @@
+<div class="client-layout">
+  <app-sidebarclient></app-sidebarclient>
+  <main class="content" [class.collapsed]="isSidebarCollapsed$ | async">
+    <app-navbarclient></app-navbarclient>
+    <router-outlet></router-outlet>
+  </main>
+</div> 

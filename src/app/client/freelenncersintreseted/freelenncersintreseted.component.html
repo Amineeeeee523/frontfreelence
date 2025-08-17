@@ -1,0 +1,176 @@
+<div class="page-container">
+
+  
+  <!-- Main Content Layout -->
+  <div class="main-layout">
+    
+    <!-- Left Column: Missions -->
+    <div class="missions-column">
+      <div class="missions-list-header">
+        <h2 class="list-title">Vos Missions</h2>
+        <p class="list-subtitle">Sélectionnez une mission pour voir les freelances intéressés</p>
+      </div>
+
+      <!-- Loading Missions State -->
+      <div *ngIf="isLoadingMissions" class="loading-missions">
+        <div class="spinner"></div>
+        <p>Chargement de vos missions...</p>
+      </div>
+
+      <!-- Missions List -->
+      <div class="missions-list" *ngIf="!isLoadingMissions && clientMissions.length > 0">
+        <div *ngFor="let mission of clientMissions; trackBy: trackById" 
+             class="mission-item"
+             [class.active]="selectedMission?.id === mission.id"
+             (click)="selectMission(mission)">
+          
+          <div class="mission-content">
+            <div class="mission-icon">
+              <fa-icon [icon]="faBriefcase"></fa-icon>
+            </div>
+            
+            <div class="mission-details">
+              <h3 class="mission-title">{{ mission.titre }}</h3>
+              <div class="mission-meta">
+                <span class="mission-category">{{ mission.categorie }}</span>
+                <span class="mission-budget">{{ mission.budget }}€</span>
+              </div>
+              <p class="mission-description">{{ mission.description | slice:0:80 }}{{ mission.description.length > 80 ? '...' : '' }}</p>
+            </div>
+
+            <div class="mission-status">
+              <div class="status-indicator" [class.active]="selectedMission?.id === mission.id">
+                <fa-icon [icon]="faCheck" *ngIf="selectedMission?.id === mission.id"></fa-icon>
+              </div>
+            </div>
+          </div>
+
+          <!-- Freelancers Count Badge -->
+          <div class="freelancers-count" *ngIf="selectedMission?.id === mission.id">
+            <span class="count-number">{{ freelancers.length }}</span>
+            <span class="count-label">freelance{{ freelancers.length > 1 ? 's' : '' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Missions State -->
+      <div *ngIf="!isLoadingMissions && clientMissions.length === 0" class="no-missions">
+        <div class="icon-container">
+          <fa-icon [icon]="faBriefcase" size="3x"></fa-icon>
+        </div>
+        <h2>Aucune mission active</h2>
+        <p>Vous n'avez pas encore créé de missions. Créez votre première mission pour commencer !</p>
+        <button class="create-mission-btn">
+          <fa-icon [icon]="faPlus"></fa-icon>
+          Créer une mission
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Column: Freelancers -->
+    <div class="freelancers-column">
+      <div class="section-header">
+        <h2 class="section-title">Freelances Intéressés</h2>
+        <p class="section-subtitle" *ngIf="selectedMission">{{ selectedMission.titre }}</p>
+        <p class="section-subtitle" *ngIf="!selectedMission">Sélectionnez une mission pour commencer</p>
+      </div>
+
+      <!-- Loading Freelancers State -->
+      <div *ngIf="isLoadingFreelancers" class="loading-freelancers">
+        <div class="spinner"></div>
+        <p>Chargement des freelances...</p>
+      </div>
+
+      <!-- No Freelancers State -->
+      <div *ngIf="!isLoadingFreelancers && selectedMission && freelancers.length === 0" class="no-freelancers">
+        <div class="icon-container">
+          <fa-icon [icon]="faUserTie" size="3x"></fa-icon>
+        </div>
+        <h2>Aucun freelance pour cette mission</h2>
+        <p>Aucun freelance n'a encore manifesté son intérêt. Revenez plus tard !</p>
+        <button (click)="reloadFreelancers()" class="retry-button">
+          <fa-icon [icon]="faSync"></fa-icon> Recharger
+        </button>
+      </div>
+
+      <!-- Freelancers Cards -->
+      <div class="freelancers-grid" *ngIf="!isLoadingFreelancers && selectedMission && freelancers.length > 0">
+        <div *ngFor="let freelancer of freelancers; trackBy: trackById" 
+             class="freelancer-card"
+             [class.liked]="freelancer.decision === 'like'"
+             [class.disliked]="freelancer.decision === 'dislike'">
+          
+          <div class="card-header">
+            <div class="freelancer-avatar">
+              <img [src]="freelancer.photoUrl || 'https://placehold.co/120x120'"
+                   alt="Photo de {{ freelancer.prenom }}"
+                   draggable="false">
+            </div>
+            
+            <div class="freelancer-info">
+              <h3 class="freelancer-name">{{ freelancer.prenom }} {{ freelancer.nom }}</h3>
+              <div class="freelancer-location" *ngIf="freelancer.localisation">
+                <fa-icon [icon]="faMapPin"></fa-icon>
+                <span>{{ freelancer.localisation }}</span>
+              </div>
+              <div class="badge-principal" *ngIf="freelancer.badgePrincipal">
+                <fa-icon [icon]="faCheckCircle"></fa-icon> {{ freelancer.badgePrincipal }}
+              </div>
+            </div>
+
+            <div class="freelancer-rating">
+              <fa-icon [icon]="faStar"></fa-icon>
+              <span>{{ freelancer.noteMoyenne || 'N/A' }}</span>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="freelancer-stats">
+              <div class="stat-item">
+                <fa-icon [icon]="faDollarSign"></fa-icon>
+                <span>{{ freelancer.tarifHoraire || 'N/C' }}€/h</span>
+              </div>
+              <div class="stat-item">
+                <fa-icon [icon]="faLevelUpAlt"></fa-icon>
+                <span>{{ freelancer.niveauExperience || 'N/A' }}</span>
+              </div>
+            </div>
+
+            <div class="skills-section" *ngIf="freelancer.competences?.length">
+              <h4>Compétences</h4>
+              <div class="freelancer-skills">
+                <span class="skill-badge" *ngFor="let skill of freelancer.competences | slice:0:3">{{ skill }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="card-actions">
+            <button class="action-button dislike" (click)="onDislike(freelancer)" [disabled]="animating">
+              <fa-icon [icon]="faTimes"></fa-icon>
+            </button>
+            <button class="action-button like" (click)="onLike(freelancer)" [disabled]="animating">
+              <fa-icon [icon]="faHeart"></fa-icon>
+            </button>
+          </div>
+
+          <!-- Decision Overlay -->
+          <div class="decision-overlay" *ngIf="freelancer.decision">
+            <div class="overlay-content" [class.like]="freelancer.decision === 'like'" [class.dislike]="freelancer.decision === 'dislike'">
+              <fa-icon [icon]="freelancer.decision === 'like' ? faHeart : faTimes"></fa-icon>
+              <span>{{ freelancer.decision === 'like' ? 'ACCEPTÉ' : 'REFUSÉ' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Initial state : No mission selected -->
+      <div *ngIf="!selectedMission && !isLoadingMissions" class="initial-prompt">
+        <fa-icon [icon]="faBriefcase" size="4x" class="prompt-icon"></fa-icon>
+        <h2>Bienvenue !</h2>
+        <p>Pour commencer, veuillez sélectionner l'une de vos missions dans la liste ci-contre.</p>
+      </div>
+    </div>
+
+  </div>
+</div>

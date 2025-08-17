@@ -1,0 +1,200 @@
+<div class="missions-container">
+  <div class="missions-controls">
+    <!-- Filtres de statut -->
+    <div class="status-filters">
+      <button 
+        *ngFor="let status of statuses"
+        [class.active]="statusFilter === status"
+        (click)="selectStatus(status)">
+        {{ status }}
+      </button>
+    </div>
+
+    <!-- Recherche et tri -->
+    <div class="search-sort">
+      <div class="search-box">
+        <fa-icon [icon]="faSearch"></fa-icon>
+        <input 
+          type="text" 
+          placeholder="Rechercher par titre ou client..."
+          [(ngModel)]="searchTerm"
+          (ngModelChange)="filterAndSortMissions()">
+      </div>
+      <div class="sort-box">
+        <select [(ngModel)]="sortBy" (ngModelChange)="filterAndSortMissions()">
+          <option *ngFor="let option of sortOptions" [value]="option.id">
+            Trier par : {{ option.name }}
+          </option>
+        </select>
+        <fa-icon [icon]="faChevronDown" class="sort-arrow"></fa-icon>
+      </div>
+    </div>
+  </div>
+
+  <!-- Conteneur de la liste des missions -->
+  <div class="missions-list">
+    <!-- État de chargement -->
+    <div *ngIf="isLoading" class="loading-indicator">
+      <div class="spinner"></div>
+      <p>Chargement de vos missions...</p>
+    </div>
+
+    <!-- État vide -->
+    <div *ngIf="!isLoading && filteredMissions.length === 0" class="empty-state">
+        <fa-icon [icon]="faExclamationCircle"></fa-icon>
+        <h2>Aucune mission trouvée</h2>
+        <p>Il semble que vous n'ayez aucune mission correspondant à vos critères actuels.</p>
+        <button (click)="selectStatus('Tous'); searchTerm=''">Voir toutes les missions</button>
+    </div>
+
+    <!-- Cartes de mission -->
+    <div class="mission-card" *ngFor="let mission of filteredMissions" [ngClass]="getStatusClass(mission.statut)">
+        <div class="card-header">
+            <h3>{{ mission.titre }}</h3>
+            <span class="status-pill" [ngClass]="getStatusClass(mission.statut)">
+              {{ mission.statut | titlecase }}
+            </span>
+        </div>
+
+        <div class="client-info">
+            <img [src]="getClientPhotoUrl(mission.client)" 
+                 alt="Avatar de {{ mission.client?.prenom }}" 
+                 class="client-avatar">
+            <div class="client-details">
+                <span class="client-name">{{ mission.client?.prenom }} {{ mission.client?.nom }}</span>
+                <span class="client-company">{{ mission.client?.nomEntreprise || 'Client Particulier' }}</span>
+            </div>
+        </div>
+
+        <div class="mission-details-grid">
+            <div class="detail-item">
+                <fa-icon [icon]="faCalendarAlt"></fa-icon>
+                <span>Deadline</span>
+                <strong>{{ mission.delaiLivraison | date: 'dd/MM/yyyy' }}</strong>
+            </div>
+            <div class="detail-item">
+                <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+                <span>Budget</span>
+                <strong>{{ mission.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
+            </div>
+        </div>
+
+        <div class="card-actions">
+            <button class="btn btn-secondary">
+                <fa-icon [icon]="faEye"></fa-icon>
+                <span>Détails</span>
+            </button>
+            <button class="btn btn-primary" [disabled]="mission.statut !== 'EN_COURS'" (click)="openDeliveryForm(mission)">
+                <fa-icon [icon]="faUpload"></fa-icon>
+                <span>Livrer</span>
+            </button>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================= -->
+<!-- ==               ✨ MODAL DE LIVRAISON ✨                      == -->
+<!-- ================================================================= -->
+<div class="modal-backdrop" *ngIf="isDeliveryModalOpen">
+  <div class="livrable-modal" (click)="$event.stopPropagation()"> <!-- Empêche la fermeture au clic intérieur -->
+    
+    <!-- Résumé de la Mission en Haut -->
+    <div class="mission-summary-header" *ngIf="currentMissionForDelivery">
+        <div class="mission-title">
+            <h3>{{ currentMissionForDelivery.titre }}</h3>
+            <span class="status-pill" [ngClass]="getStatusClass(currentMissionForDelivery.statut)">
+                {{ currentMissionForDelivery.statut | titlecase }}
+            </span>
+        </div>
+        <div class="mission-meta">
+            <div class="meta-item">
+                <fa-icon [icon]="faUserCircle"></fa-icon>
+                <span>{{ currentMissionForDelivery.client?.prenom }} {{ currentMissionForDelivery.client?.nom }}</span>
+            </div>
+            <div class="meta-item">
+                <fa-icon [icon]="faCalendarAlt"></fa-icon>
+                <span>Deadline: {{ currentMissionForDelivery.delaiLivraison | date: 'dd/MM/yyyy' }}</span>
+            </div>
+            <div class="meta-item">
+                <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+                <strong>{{ currentMissionForDelivery.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
+            </div>
+        </div>
+    </div>
+    
+    <header class="modal-header">
+      <h2>Soumettre votre travail</h2>
+      <button class="close-btn" (click)="closeDeliveryForm()">
+          <fa-icon [icon]="faTimes"></fa-icon>
+      </button>
+    </header>
+    
+    <form (ngSubmit)="submitDelivery()" class="delivery-form">
+      <div class="form-group">
+        <label for="description">Message à votre client (optionnel)</label>
+        <textarea id="description" [(ngModel)]="description" name="description" placeholder="Ajoutez une description, des notes sur votre travail..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Fichiers à livrer</label>
+        <div class="file-drop-zone" 
+             (dragover)="onDragOver($event)"
+             (dragleave)="onDragLeave($event)"
+             (drop)="onDrop($event)"
+             [class.drag-over]="isDragOver"
+             (click)="fileInput.click()"> <!-- Déclenche l'input file au clic -->
+          <div class="drop-zone-content">
+            <fa-icon [icon]="faUpload" class="upload-icon"></fa-icon>
+            <p>Glissez-déposez vos fichiers, ou <span class="browse-link">parcourez</span>.</p>
+            <span>Taille max. 50MB par fichier</span>
+          </div>
+          <input #fileInput type="file" id="file-input" multiple (change)="onFileSelected($event)" hidden>
+        </div>
+      </div>
+
+      <div class="file-preview-list" *ngIf="uploadedFiles.length > 0">
+        <div class="file-preview-item" *ngFor="let item of uploadedFiles">
+          <div class="file-icon">
+            <img *ngIf="item.previewUrl" [src]="item.previewUrl" alt="Aperçu" class="image-preview">
+            <fa-icon *ngIf="!item.previewUrl" [icon]="item.icon" [style.color]="item.color"></fa-icon>
+          </div>
+          <div class="file-info">
+            <span class="file-name">{{ item.name }}</span>
+            <span class="file-size">{{ item.size }}</span>
+          </div>
+          <button type="button" class="remove-file-btn" (click)="removeFile(item.name)">
+            <fa-icon [icon]="faTimes"></fa-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="form-group">
+          <label>Liens Externes (optionnel)</label>
+          <div class="links-list">
+              <div class="link-item" *ngFor="let link of externalLinks; let i = index">
+                  <fa-icon [icon]="link.icon" class="link-icon"></fa-icon>
+                  <input type="url" [(ngModel)]="link.url" [name]="'link-' + i" placeholder="https://github.com/votre-projet" (input)="updateLinkIcon(i)">
+                  <button type="button" class="remove-link-btn" (click)="removeLink(i)" *ngIf="externalLinks.length > 1">
+                    <fa-icon [icon]="faTrash"></fa-icon>
+                  </button>
+              </div>
+          </div>
+          <button type="button" class="add-link-btn" (click)="addLink()">
+            <fa-icon [icon]="faLink"></fa-icon>
+            Ajouter un autre lien
+          </button>
+      </div>
+      
+      <footer class="modal-actions">
+        <button type="button" class="btn btn-secondary" (click)="closeDeliveryForm()">Annuler</button>
+        <button type="submit" class="btn btn-primary" [disabled]="isSubmitDisabled()">
+          <fa-icon [icon]="faSpinner" class="fa-spin" *ngIf="isSubmitting"></fa-icon>
+          <fa-icon [icon]="faPaperPlane" *ngIf="!isSubmitting"></fa-icon>
+          <span *ngIf="!isSubmitting">Envoyer la livraison</span>
+          <span *ngIf="isSubmitting">Envoi en cours...</span>
+        </button>
+      </footer>
+    </form>
+  </div>
+</div>

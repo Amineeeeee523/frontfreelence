@@ -1,0 +1,142 @@
+<div class="missions-container">
+  <header class="missions-header">
+    <h1>Suivi de vos Projets</h1>
+  </header>
+
+  <!-- --- Contrôles & Filtres --- -->
+  <div class="missions-controls">
+    <div class="status-filters">
+      <button 
+        *ngFor="let status of statuses"
+        [class.active]="statusFilter() === status"
+        (click)="selectStatus(status)">
+        {{ status.replace('_', ' ') }}
+      </button>
+    </div>
+    <!-- Zone pour recherche future -->
+  </div>
+
+  <!-- --- Liste des Missions --- -->
+  <div class="missions-list">
+    <!-- État de chargement -->
+    <div *ngIf="isLoading()" class="loading-indicator">
+      <div class="spinner"></div>
+      <p>Chargement de vos projets en cours...</p>
+    </div>
+
+    <!-- État vide -->
+    <div *ngIf="!isLoading() && filteredMissions().length === 0" class="empty-state">
+        <fa-icon [icon]="faExclamationCircle"></fa-icon>
+        <h2>Aucun projet trouvé</h2>
+        <p>Il semble que vous n'ayez aucun projet correspondant à ce statut.</p>
+    </div>
+
+    <!-- Cartes de mission -->
+    <div class="mission-card" *ngFor="let mission of filteredMissions()" [ngClass]="getStatusClass(mission.statut)">
+        <div class="card-header">
+            <h3>{{ mission.titre }}</h3>
+            <span class="status-pill" [ngClass]="getStatusClass(mission.statut)">
+              {{ mission.statut.replace('_', ' ') }}
+            </span>
+        </div>
+
+        <div class="freelance-info">
+            <img [src]="mission.freelance?.photoProfilUrl || 'assets/default-avatar.png'" 
+                 alt="Avatar de {{ mission.freelance?.prenom }}" 
+                 class="freelance-avatar">
+            <div class="freelance-details">
+                <span class="freelance-name">{{ mission.freelance?.prenom }} {{ mission.freelance?.nom }}</span>
+                <span class="freelance-type">{{ mission.freelance?.typeUtilisateur }}</span>
+            </div>
+        </div>
+
+        <div class="mission-details-grid">
+            <div class="detail-item">
+                <fa-icon [icon]="faCalendarAlt"></fa-icon>
+                <span>Deadline</span>
+                <strong>{{ mission.delaiLivraison | date: 'dd/MM/yyyy' }}</strong>
+            </div>
+            <div class="detail-item">
+                <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+                <span>Budget</span>
+                <strong>{{ mission.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
+            </div>
+        </div>
+
+        <div class="card-actions">
+            <button class="btn btn-secondary">
+                <fa-icon [icon]="faEye"></fa-icon>
+                <span>Détails</span>
+            </button>
+            <button class="btn btn-primary" (click)="openLivrablesModal(mission)">
+                <fa-icon [icon]="faBoxOpen"></fa-icon>
+                <span>Voir Livrables</span>
+                <span *ngIf="mission.livrablesEnAttente" class="notification-badge">{{mission.livrablesEnAttente}}</span>
+            </button>
+        </div>
+    </div>
+  </div>
+</div>
+
+<!-- --- Modale des Livrables --- -->
+<div class="modal-backdrop" *ngIf="isModalOpen()">
+  <div class="livrables-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2>Livrables pour "{{ selectedMissionForModal()?.titre }}"</h2>
+      <button class="close-btn" (click)="closeModal()"><fa-icon [icon]="faTimes"></fa-icon></button>
+    </header>
+    
+    <div class="modal-body">
+      <div *ngIf="isLoadingLivrables()" class="loading-indicator">
+        <div class="spinner"></div>
+      </div>
+
+      <div *ngIf="!isLoadingLivrables() && livrablesForMission().length === 0" class="empty-state">
+          <p>Aucun livrable soumis pour cette mission.</p>
+      </div>
+
+      <div class="livrable-item" *ngFor="let livrable of livrablesForMission()">
+          <div class="livrable-details">
+              <div class="livrable-title">{{ livrable.titre }}</div>
+              <p>{{livrable.description}}</p>
+              <div class="livrable-date">Soumis le: {{ livrable.dateEnvoi | date:'fullDate' }}</div>
+              
+              <!-- Fichiers attachés -->
+              <div class="livrable-files" *ngIf="livrable.cheminsFichiers?.length">
+                <h4>📄 Fichiers attachés</h4>
+                <div class="file-list">
+                  <div class="file-item" *ngFor="let fichier of livrable.cheminsFichiers; let i = index">
+                    <a [href]="fichier" target="_blank" class="file-link">
+                      <fa-icon [icon]="faDownload"></fa-icon>
+                      <span>Fichier {{ i + 1 }}</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Liens externes -->
+              <div class="livrable-links" *ngIf="livrable.liensExternes?.length">
+                <h4>🔗 Liens externes</h4>
+                <div class="link-list">
+                  <div class="link-item" *ngFor="let lien of livrable.liensExternes">
+                    <a [href]="lien" target="_blank" class="external-link">
+                      <fa-icon [icon]="faLink"></fa-icon>
+                      <span>{{ lien }}</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+          </div>
+          <div class="livrable-status">
+            <span class="status-pill" [ngClass]="getLivrableStatusClass(livrable.status)">{{livrable.status}}</span>
+          </div>
+          <div class="livrable-actions">
+            <ng-container *ngIf="livrable.status === 'EN_ATTENTE'">
+              <button class="action-btn validate" (click)="handleLivrableAction(livrable.id, 'valider', livrable.missionId)"><fa-icon [icon]="faCheck"></fa-icon></button>
+              <button class="action-btn reject" (click)="handleLivrableAction(livrable.id, 'rejeter', livrable.missionId)"><fa-icon [icon]="faTimes"></fa-icon></button>
+            </ng-container>
+          </div>
+      </div>
+    </div>
+  </div>
+</div>

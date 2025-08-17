@@ -1,0 +1,12 @@
+.freelencer-layout {
+  display: flex;
+  height: 100vh;
+  background-color: #FEF6F3; /* Correspond à la couleur de fond du swipe */
+}
+
+.content {
+  flex-grow: 1;
+  height: 100vh;
+  overflow-y: auto;
+  transition: none; /* La transition se fait sur la largeur de la sidebar */
+} 

@@ -1,0 +1,31 @@
+<nav class="navbar-freelencer" *ngIf="user$ | async as user">
+  <div class="navbar-left">
+    
+  
+  </div>
+
+  <div class="navbar-right">
+    <button class="icon-btn notification-btn">
+      <fa-icon [icon]="faBell"></fa-icon>
+      <span class="notification-badge">3</span>
+    </button>
+    <button class="icon-btn">
+      <fa-icon [icon]="faCreditCard"></fa-icon>
+    </button>
+
+    <div class="user-menu" (click)="toggleDropdown()">
+      <img [src]="user.photoProfilUrl || 'https://placehold.co/40x40'" alt="Photo de profil" class="user-avatar">
+      <div class="user-menu-info">
+        <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+        <span class="user-role">{{ user.typeUtilisateur | lowercase }}</span>
+      </div>
+      <fa-icon [icon]="faChevronDown" class="dropdown-icon" [class.rotated]="isDropdownOpen"></fa-icon>
+
+      <div class="dropdown-menu" [class.show]="isDropdownOpen">
+        <a routerLink="/freelencer/profile">Mon Profil</a>
+        <a routerLink="/freelencer/settings">Paramètres</a>
+        <a (click)="logout()">Déconnexion</a>
+      </div>
+    </div>
+  </div>
+</nav>

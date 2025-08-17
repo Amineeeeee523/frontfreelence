@@ -1,0 +1,168 @@
+<div class="detail-container">
+
+  <!-- En-tête de la page -->
+  <header class="page-header">
+    <button (click)="goBack()" class="back-button">
+      <fa-icon [icon]="faArrowLeft"></fa-icon>
+    </button>
+    <div *ngIf="missionSummary">
+      <h1>{{ missionSummary.titreMission }}</h1>
+      <p>Suivi détaillé des tranches de paiement</p>
+    </div>
+  </header>
+
+  <!-- État de chargement -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner"></div>
+    <p>Chargement du détail de la mission...</p>
+  </div>
+
+  <!-- Contenu principal -->
+  <main *ngIf="!isLoading && missionSummary">
+
+    <!-- Timeline des tranches de paiement -->
+    <div class="timeline">
+      <div *ngFor="let tranche of missionSummary.tranches; let isLast = last" class="timeline-item" [ngClass]="getTimelineClass(tranche.statut)">
+        
+        <!-- Point et ligne de la timeline -->
+        <div class="timeline-point">
+          <fa-icon [icon]="getTimelineIcon(tranche.statut)"></fa-icon>
+        </div>
+        <div *ngIf="!isLast" class="timeline-line"></div>
+
+        <!-- Carte de la tranche -->
+        <div class="tranche-card">
+          <div class="card-header">
+            <h3>{{ tranche.ordre }}. {{ tranche.titre }}</h3>
+            <span class="badge" [ngClass]="getTimelineClass(tranche.statut)">
+              {{ formatStatut(tranche.statut) }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <div class="amount-details">
+              <div><span>Montant Brut</span><strong>{{ tranche.montantBrut | number:'1.2-2' }} TND</strong></div>
+              <div><span>Commission</span><strong>{{ tranche.commissionPlateforme | number:'1.2-2' }} TND</strong></div>
+              <div><span>Net Freelance</span><strong>{{ tranche.montantNetFreelance | number:'1.2-2' }} TND</strong></div>
+            </div>
+          </div>
+
+          <div class="card-footer" *ngIf="isActionAvailable(tranche.statut)">
+            <button class="action-button" (click)="handleTrancheAction(tranche)">
+              <fa-icon [icon]="tranche.statut === 'EN_ATTENTE_DEPOT' ? faCreditCard : faCheckCircle"></fa-icon>
+              <span>{{ getButtonText(tranche.statut) }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- État vide s'il n'y a aucune tranche -->
+    <div *ngIf="missionSummary.tranches.length === 0" class="empty-tranches">
+      <p>Aucune tranche n'a été définie pour cette mission.</p>
+    </div>
+
+  </main>
+
+  <!-- Bouton flottant pour ajouter une tranche -->
+  <button class="fab" (click)="openAddTrancheModal()">
+    <fa-icon [icon]="faPlus"></fa-icon>
+  </button>
+
+</div>
+
+<!-- Modal pour ajouter une tranche Ultra Moderne -->
+<div class="modal-overlay" *ngIf="isAddTrancheModalOpen" (click)="closeAddTrancheModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    
+    <!-- Header du modal avec logo -->
+    <div class="modal-header">
+      <img src="assets/Logo.png" alt="Promatch Logo" class="modal-logo">
+    </div>
+
+    <!-- Progress bar comme dans sign-up -->
+    <div class="modal-progress">
+      <div class="progress-step active">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <span>Nouvelle Tranche</span>
+      </div>
+    </div>
+
+    <!-- Contenu du formulaire -->
+    <div class="modal-body">
+      <div class="form-header">
+        <h2 class="form-title">Ajouter une nouvelle tranche</h2>
+        <p class="form-subtitle">Définissez les détails de cette étape de paiement</p>
+      </div>
+
+      <form (ngSubmit)="createTranche()" class="tranche-form">
+        
+        <div class="input-group">
+          <label class="input-label">Ordre de la tranche</label>
+          <div class="input-field">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            </span>
+            <input 
+              id="tranche-ordre" 
+              type="number" 
+              [(ngModel)]="newTranche.ordre" 
+              name="ordre" 
+              placeholder="Ex: 1" 
+              required 
+              min="1"
+              class="form-input">
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">Titre de la tranche</label>
+          <div class="input-field">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+            </span>
+            <input 
+              id="tranche-titre" 
+              type="text" 
+              [(ngModel)]="newTranche.titre" 
+              name="titre" 
+              placeholder="Ex: Premier livrable - Maquette" 
+              required
+              class="form-input">
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">Montant (TND)</label>
+          <div class="input-field">
+            <span class="input-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </span>
+            <input 
+              id="tranche-montant" 
+              type="number" 
+              [(ngModel)]="newTranche.montant" 
+              name="montant" 
+              placeholder="Ex: 500" 
+              required 
+              min="0" 
+              step="0.01"
+              class="form-input">
+          </div>
+        </div>
+
+        <!-- Navigation buttons comme dans sign-up -->
+        <div class="navigation-buttons">
+          <button type="button" class="btn-secondary" (click)="closeAddTrancheModal()">
+            Annuler
+          </button>
+          <button type="submit" class="btn-primary">
+            Créer la tranche
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

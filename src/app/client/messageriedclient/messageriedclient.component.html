@@ -1,0 +1,148 @@
+<div class="chat-container">
+
+  <!-- Sidebar -->
+  <div class="chat-sidebar" [class.open]="isSidebarOpen">
+    <div class="sidebar-header">
+      <button class="sidebar-close" (click)="toggleSidebar()">
+        <fa-icon [icon]="faTimes"></fa-icon>
+      </button>
+      <div class="sidebar-title">
+        <h2>Messagerie</h2>
+        <span class="badge">{{ filteredConversations.length }}</span>
+      </div>
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <fa-icon [icon]="faSearch" class="search-icon"></fa-icon>
+          <input 
+            type="text" 
+            placeholder="Rechercher une mission..." 
+            [(ngModel)]="searchTerm" 
+            (input)="applyFilters()" 
+            class="search-input"
+          />
+          <button *ngIf="searchTerm" (click)="clearSearch()" class="clear-search-btn" type="button">
+            <fa-icon [icon]="faTimes"></fa-icon>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="conversation-list">
+      <div *ngIf="isLoading && conversations.length === 0" class="loading-conversations">
+        <div class="spinner"></div>
+        <p>Chargement...</p>
+      </div>
+      <div *ngFor="let conv of filteredConversations" 
+           class="conversation-item"
+           [class.active]="conv.conversationId === selectedConversation?.conversationId"
+           (click)="selectConversation(conv)">
+        <div class="avatar-container">
+          <img [src]="conv.otherUserPhotoUrl || 'assets/default-avatar.png'" [alt]="conv.otherUserNomComplet" class="avatar">
+        </div>
+        <div class="conversation-details">
+          <div class="conv-header">
+            <span class="mission-name">{{ conv.missionTitre }}</span>
+            <span class="message-time">{{ conv.lastMessageAt | date:'HH:mm' }}</span>
+          </div>
+          <div class="conv-body">
+            <p class="last-message" [class.unread]="conv.unreadCount > 0">
+              <span *ngIf="conv.lastMessageSenderId === currentUser?.id">Vous: </span>
+              {{ conv.lastMessagePreview }}
+            </p>
+            <span *ngIf="conv.unreadCount > 0" class="unread-badge">{{ conv.unreadCount }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Chat Window -->
+  <div class="chat-main">
+    <ng-container *ngIf="selectedConversation; else noConversation">
+      
+      <!-- Chat Header -->
+      <div class="chat-header">
+         <button class="sidebar-toggle" (click)="toggleSidebar()">
+            <fa-icon [icon]="faBars"></fa-icon>
+        </button>
+        <img [src]="selectedConversation.otherUserPhotoUrl || 'assets/default-avatar.png'" [alt]="selectedConversation.otherUserNomComplet" class="avatar">
+        <div class="user-details">
+          <h3>{{ selectedConversation.otherUserNomComplet }}</h3>
+          <p class="mission-title">
+            <a (click)="navigateToMission()">Mission : {{ selectedConversation.missionTitre }}</a>
+          </p>
+        </div>
+        <div class="chat-options">
+            <fa-icon [icon]="faEllipsisV"></fa-icon>
+        </div>
+      </div>
+
+      <!-- Message Area -->
+      <div class="message-area" #messageContainer (scroll)="onScroll($event)">
+        <div *ngIf="isLoadingMore" class="loading-more-spinner">
+          <div class="spinner"></div>
+        </div>
+        <ng-container *ngFor="let group of messageGroups">
+            <div class="date-separator">
+                <span>{{ group.date }}</span>
+            </div>
+            <div *ngFor="let msg of group.messages; let i = index" 
+                class="message-wrapper" 
+                [ngClass]="{
+                    'sent': isMyMessage(msg), 
+                    'received': !isMyMessage(msg),
+                    'first-of-group': !isConsecutiveMessage(group.messages, i, true),
+                    'last-of-group': !isConsecutiveMessage(group.messages, i, false),
+                    'pending': msg.status === MessageStatus.PENDING,
+                    'failed': msg.status === MessageStatus.FAILED
+                }">
+                <div *ngIf="!isMyMessage(msg) && !isConsecutiveMessage(group.messages, i, true)" class="avatar-in-message">
+                  <img [src]="selectedConversation.otherUserPhotoUrl || 'assets/default-avatar.png'" alt="" class="avatar-small">
+                </div>
+                <div class="message-bubble">
+                    <p class="message-content" [innerHTML]="msg.content | linky"></p>
+                    <div class="message-meta">
+                      <span class="message-timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
+                      <div *ngIf="isMyMessage(msg)" class="message-status">
+                        <fa-icon *ngIf="msg.status === MessageStatus.PENDING" [icon]="faClock" class="pending-icon"></fa-icon>
+                        <fa-icon *ngIf="msg.status === MessageStatus.SENT && msg.seen" [icon]="faCheckDouble" class="seen-receipt"></fa-icon>
+                        <fa-icon *ngIf="msg.status === MessageStatus.FAILED" [icon]="faExclamationCircle" class="failed-icon"></fa-icon>
+                      </div>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+      </div>
+
+      <!-- Input Area -->
+      <div class="chat-input-area">
+        <div class="input-wrapper">
+          <textarea 
+                 #messageInput
+                 class="message-input" 
+                 placeholder="Écrivez votre message..."
+                 [(ngModel)]="messageContent"
+                 (keydown.enter)="sendMessage($event)"
+                 (input)="autoGrowTextarea($event)"></textarea>
+          <button class="send-button" (click)="sendMessage($event)" [disabled]="!messageContent.trim()">
+            <fa-icon [icon]="faPaperPlane"></fa-icon>
+          </button>
+        </div>
+      </div>
+
+    </ng-container>
+
+    <ng-template #noConversation>
+        <div class="no-conversation-selected">
+            <div class="content">
+                <svg class="chat-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.8214 2.48697 15.5291 3.33782 17L2.5 21.5L7 20.6622C8.47087 21.513 10.1786 22 12 22Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                <h3>Bienvenue dans votre messagerie</h3>
+                <p>Sélectionnez une conversation pour commencer à discuter ou attendez de nouveaux messages.</p>
+            </div>
+        </div>
+    </ng-template>
+
+    <div *ngIf="isLoading && !selectedConversation" class="loading-overlay">
+      <div class="spinner"></div>
+    </div>
+  </div>
+</div>

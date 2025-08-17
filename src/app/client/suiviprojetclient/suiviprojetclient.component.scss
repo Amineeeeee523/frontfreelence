@@ -1,0 +1,358 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:host {
+  // Palette "Sunset" &
+  --brand-coral: #FF6B6B;
+  --brand-peach: #FFD166;
+  --brand-gradient: linear-gradient(125deg, var(--brand-coral) 0%, var(--brand-peach) 100%);
+  --progress-color: var(--brand-peach);
+  --bg-color: #F9FAFB;
+  --card-bg: #FFFFFF;
+  --border-color: #F3F4F6;
+  --text-dark: #111827;
+  --text-normal: #374151;
+  --text-muted: #6B7280;
+  --font-family: 'Inter', sans-serif;
+  --shadow-color-light: rgba(255, 107, 107, 0.1);
+  --shadow-color-medium: rgba(255, 107, 107, 0.15);
+  --shadow-color-heavy: rgba(255, 107, 107, 0.25);
+  --shadow-sm: 0 2px 8px var(--shadow-color-light);
+  --shadow-md: 0 5px 15px var(--shadow-color-medium);
+  --shadow-lg: 0 12px 28px var(--shadow-color-heavy);
+  --border-radius-md: 12px;
+  --border-radius-lg: 20px;
+
+  // Couleurs de Statut
+  --status-pending-bg: #FFFBEB;
+  --status-pending-text: #D97706;
+  --status-pending-border: #FBBF24;
+  
+  --status-in-progress-bg: #FFF1F2;
+  --status-in-progress-text: #D93737;
+  --status-in-progress-border: var(--brand-coral);
+
+  --status-validation-bg: #FAF5FF; // Pour EN_ATTENTE_VALIDATION
+  --status-validation-text: #9333EA;
+  --status-validation-border: #C084FC;
+
+  --status-completed-bg: #F0FDF4;
+  --status-completed-text: #16A34A;
+  --status-completed-border: #4ADE80;
+  
+  --status-cancelled-bg: #F4F4F5;
+  --status-cancelled-text: #71717A;
+  --status-cancelled-border: #D4D4D8;
+}
+
+// Styles Généraux
+.missions-container {
+  padding: 2.5rem;
+  background-color: var(--bg-color);
+  font-family: var(--font-family);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.missions-header {
+  margin-bottom: 2rem;
+  h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    background: var(--brand-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+  }
+}
+
+// Contrôles & Filtres
+.missions-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.status-filters {
+  display: flex;
+  gap: 0.75rem;
+  background-color: var(--card-bg);
+  padding: 0.5rem;
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+
+  button {
+    background: transparent;
+    border: none;
+    padding: 0.7rem 1.4rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    &.active {
+      color: white;
+      background: var(--brand-gradient);
+      transform: scale(1.05);
+      box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+    }
+    &:hover:not(.active) {
+        background-color: var(--bg-color);
+        color: var(--text-dark);
+    }
+  }
+}
+
+// Cartes de Mission
+.missions-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 2rem;
+}
+
+.mission-card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+  border-left: 5px solid transparent;
+
+  &.status-EN_ATTENTE { border-color: var(--status-pending-border); }
+  &.status-EN_COURS { border-color: var(--status-in-progress-border); }
+  &.status-EN_ATTENTE_VALIDATION { border-color: var(--status-validation-border); }
+  &.status-TERMINEE { border-color: var(--status-completed-border); }
+  &.status-ANNULEE { border-color: var(--status-cancelled-border); }
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.card-header {
+  h3 { font-size: 1.3rem; font-weight: 700; color: var(--text-dark); margin: 0; }
+}
+
+.status-pill {
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  &.status-EN_ATTENTE { background-color: var(--status-pending-bg); color: var(--status-pending-text); }
+  &.status-EN_COURS { background-color: var(--status-in-progress-bg); color: var(--status-in-progress-text); }
+  &.status-EN_ATTENTE_VALIDATION { background-color: var(--status-validation-bg); color: var(--status-validation-text); }
+  &.status-TERMINEE { background-color: var(--status-completed-bg); color: var(--status-completed-text); }
+  &.status-ANNULEE { background-color: var(--status-cancelled-bg); color: var(--status-cancelled-text); }
+  
+  // Styles pour les livrables
+  &.status-VALIDE { background-color: var(--status-completed-bg); color: var(--status-completed-text); }
+  &.status-REJETE { background-color: var(--status-in-progress-bg); color: var(--status-in-progress-text); }
+}
+
+.freelance-info { // ADAPTATION: client-info -> freelance-info
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+
+  .freelance-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
+  .freelance-details {
+    .freelance-name { display: block; font-weight: 600; color: var(--text-dark); }
+    .freelance-type { font-size: 0.875rem; color: var(--text-muted); }
+  }
+}
+
+
+// ... [rest of the styles from missionfreelencer for details, progress, actions]
+.mission-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  
+  .detail-item {
+    background-color: var(--bg-color);
+    padding: 0.85rem;
+    border-radius: var(--border-radius-md);
+    fa-icon { color: var(--brand-coral); margin-bottom: 0.5rem; }
+    span { font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem; }
+    strong { font-size: 0.95rem; font-weight: 600; color: var(--text-dark); }
+  }
+}
+
+.card-actions {
+  display: flex; gap: 0.75rem; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-color);
+
+  .btn {
+    flex-grow: 1; display: flex; justify-content: center; align-items: center; gap: 0.5rem; padding: 0.85rem 1rem;
+    border-radius: var(--border-radius-md); font-weight: 600; font-size: 0.9rem; border: 1px solid transparent;
+    cursor: pointer; transition: all 0.3s ease-in-out;
+
+    &.btn-primary { // "Voir Livrables" button
+      background: var(--brand-gradient); color: white; box-shadow: var(--shadow-sm);
+      &:hover:not(:disabled) { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    }
+    &.btn-secondary { // "Détails" button
+      background-color: white; color: var(--text-dark); border-color: var(--border-color);
+      &:hover { background-color: var(--bg-color); border-color: var(--brand-peach); color: var(--brand-peach); }
+    }
+    &.btn-validation { // "Valider/Refuser" button on card
+      background: var(--status-validation-bg); color: var(--status-validation-text); border-color: var(--status-validation-border);
+      font-weight: 700;
+       &:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); border-color: var(--status-validation-border); }
+    }
+     &:disabled {
+        background: #D1D5DB;
+        color: #6B7280;
+        cursor: not-allowed;
+        opacity: 0.7;
+    }
+  }
+}
+
+// Badge de notification pour les livrables en attente
+.notification-badge {
+  background: var(--brand-coral);
+  color: white;
+  border-radius: 50%;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: 0.5rem;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Modal pour les livrables
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(249, 250, 251, 0.8);
+  backdrop-filter: blur(12px); z-index: 1000; display: flex;
+  justify-content: center; align-items: center; padding: 2rem;
+  animation: fadeInBackdrop 0.5s ease-out forwards;
+}
+@keyframes fadeInBackdrop { from { opacity: 0; } to { opacity: 1; } }
+
+.livrables-modal {
+  width: 100%; max-width: 800px; background: white;
+  border-radius: var(--border-radius-lg); box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; max-height: 90vh;
+  animation: slideInModal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+@keyframes slideInModal { from { transform: translateY(50px) scale(0.97); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+
+.modal-header {
+  padding: 1.5rem 2rem; border-bottom: 1px solid var(--border-color);
+  display: flex; justify-content: space-between; align-items: center;
+  h2 { font-size: 1.5rem; color: var(--text-dark); margin:0; }
+  .close-btn { background:transparent; border:none; font-size:1.5rem; color: var(--text-muted); cursor:pointer; transition: transform 0.2s; &:hover {transform: rotate(90deg); color: var(--brand-coral);} }
+}
+
+.modal-body {
+  padding: 2rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem;
+}
+
+.livrable-item {
+  display: flex; gap: 1rem; align-items: flex-start; background: var(--bg-color); padding: 1rem; border-radius: var(--border-radius-md);
+  .livrable-details { flex-grow: 1; }
+  .livrable-title { font-weight: 600; color: var(--text-dark); margin-bottom: 0.5rem; }
+  .livrable-date { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; }
+  .livrable-status { align-self: center; }
+  .livrable-actions { display:flex; gap: 0.5rem; align-items: center; }
+  .action-btn { 
+    border: none; border-radius: 8px; width: 40px; height: 40px; cursor: pointer; transition: all 0.2s;
+    &.validate { background: var(--status-completed-bg); color: var(--status-completed-text); &:hover { opacity: 0.8; } }
+    &.reject { background: var(--status-in-progress-bg); color: var(--status-in-progress-text); &:hover { opacity: 0.8; } }
+    &.download { background: #e2e8f0; color: var(--text-dark); &:hover { background-color: #ced4da; } }
+  }
+  
+  // Styles pour les fichiers et liens
+  .livrable-files, .livrable-links {
+    margin-top: 1rem;
+    
+    h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+    }
+  }
+  
+  .file-list, .link-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .file-item, .link-item {
+    .file-link, .external-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: white;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--text-dark);
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: var(--bg-color);
+        border-color: var(--brand-coral);
+        color: var(--brand-coral);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+      }
+      
+      fa-icon {
+        color: var(--brand-coral);
+        font-size: 0.8rem;
+      }
+      
+      span {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+  
+  .external-link {
+    color: var(--text-normal) !important;
+    
+    &:hover {
+      color: var(--brand-coral) !important;
+    }
+  }
+}
+
+// Empty/Loading states
+.loading-indicator, .empty-state {
+   grid-column: 1 / -1; text-align: center; padding: 5rem 2rem;
+  .spinner { border: 5px solid rgba(255, 107, 107, 0.2); width: 50px; height: 50px; border-radius: 50%; border-left-color: var(--brand-coral); animation: spin 1s ease infinite; margin: 0 auto 1.5rem; }
+  p, h2 { color: var(--text-dark); }
+}
+@keyframes spin { to { transform: rotate(360deg); } }

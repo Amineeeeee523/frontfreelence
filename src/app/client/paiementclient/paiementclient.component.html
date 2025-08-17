@@ -1,0 +1,138 @@
+<!--
+  ULTRA MODERNE PAIEMENT CLIENT - VERSION 4.0
+  Design épuré et chic inspiré de Stripe et Apple
+-->
+<div class="paiement-container">
+
+  <!-- État de chargement Ultra Moderne -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-content">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="spinner-ring"></div>
+      </div>
+      <h3>Chargement de vos missions...</h3>
+      <p>Préparation de votre tableau de bord de paiements</p>
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu principal Ultra Moderne -->
+  <main *ngIf="!isLoading" class="missions-grid">
+
+    <!-- Carte pour chaque mission avec design épuré -->
+    <div *ngFor="let mission of missions; let i = index; trackBy: trackByMissionId" 
+         class="mission-card" 
+         [routerLink]="['/client/paiements/mission', mission.id]"
+         [style.animation-delay]="(i * 0.1) + 's'">
+      
+      <!-- Header de la carte -->
+      <div class="card-header">
+        <div class="mission-info">
+          <h2 class="mission-title">{{ mission.titre }}</h2>
+          <div class="mission-meta">
+            <span class="mission-id">#{{ mission.id }}</span>
+            <span class="mission-date">{{ mission.datePublication | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+        <div class="status-badge" [ngClass]="getBadgeClass(mission.statut)">
+          <fa-icon [icon]="getBadgeIcon(mission.statut)"></fa-icon>
+          {{ formatStatut(mission.statut) }}
+        </div>
+      </div>
+
+      <!-- Montant principal -->
+      <div class="amount-section">
+        <div class="amount-display">
+          <span class="amount-label">Montant total</span>
+          <span class="amount-value">
+            <ng-container *ngIf="mission.summary?.totalBrut !== undefined && mission.summary?.totalBrut !== null; else loadingAmount">
+              {{ mission.summary?.totalBrut | number:'1.2-2' }} {{ mission.devise || 'TND' }}
+            </ng-container>
+            <ng-template #loadingAmount>
+              <span class="loading-amount">Chargement...</span>
+            </ng-template>
+          </span>
+        </div>
+      </div>
+
+      <!-- Barre de progression simplifiée -->
+      <div class="progress-section">
+        <div class="progress-info">
+          <span class="progress-text">{{ mission.paidTranches }} / {{ mission.totalTranches }} tranches</span>
+          <span class="progress-percentage">{{ mission.progress | number:'1.0-0' }}%</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="mission.progress"></div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="card-actions">
+        <a class="action-link" [routerLink]="['/client/paiements/mission', mission.id]">
+          <span>Gérer les paiements</span>
+          <fa-icon [icon]="faArrowRight"></fa-icon>
+        </a>
+      </div>
+
+      <!-- Effet de brillance -->
+      <div class="card-shine"></div>
+    </div>
+
+    <!-- État vide Ultra Moderne -->
+    <div *ngIf="missions.length === 0" class="empty-state">
+      <div class="empty-content">
+        <div class="empty-icon">
+          <fa-icon [icon]="faCreditCard" size="4x"></fa-icon>
+        </div>
+        <h3>Aucune mission à afficher</h3>
+        <p>Créez votre première mission pour commencer à travailler avec nos freelances.</p>
+        <div class="empty-actions">
+          <button class="primary-button" [routerLink]="['/client/mes-missions']">
+            <fa-icon [icon]="faPlus"></fa-icon>
+            Créer une mission
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Statistiques globales simplifiées -->
+  <div *ngIf="!isLoading && missions.length > 0" class="global-stats">
+    <div class="stats-card">
+      <div class="stat-item">
+        <div class="stat-icon">
+          <fa-icon [icon]="faChartLine"></fa-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ getTotalAmount() | number:'1.0-0' }} TND</span>
+          <span class="stat-label">Total engagé</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <fa-icon [icon]="faCheckCircle"></fa-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ getCompletedTranches() }}</span>
+          <span class="stat-label">Tranches payées</span>
+        </div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon">
+          <fa-icon [icon]="faPercent"></fa-icon>
+        </div>
+        <div class="stat-content">
+          <span class="stat-value">{{ getAverageProgress() | number:'1.0-0' }}%</span>
+          <span class="stat-label">Progression</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,274 @@
+<div class="signup-container">
+  <div class="signup-panel">
+    
+    <!-- Logo -->
+    <div class="signup-header">
+      <img src="assets/Logo.png" alt="Promatch Logo" class="logo">
+    </div>
+    
+    <div class="progress-bar">
+      <div class="step" [class.active]="currentStep >= 0" [class.completed]="currentStep > 0">
+        <div class="step-icon">
+          <svg *ngIf="currentStep <= 0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
+          <svg *ngIf="currentStep > 0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <span>Compte</span>
+      </div>
+      <div class="step-connector" [class.active]="currentStep >= 1"></div>
+      <div class="step" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+        <div class="step-icon">
+          <svg *ngIf="currentStep <= 1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
+          <svg *ngIf="currentStep > 1" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <span>Infos</span>
+      </div>
+      <div class="step-connector" [class.active]="currentStep >= 2"></div>
+      <div class="step" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+        <div class="step-icon">
+          <svg *ngIf="currentStep <= 2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
+          <svg *ngIf="currentStep > 2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <span>Métier</span>
+      </div>
+      <div class="step-connector" [class.active]="currentStep >= 3"></div>
+      <div class="step" [class.active]="currentStep >= 3">
+        <div class="step-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
+        </div>
+        <span>Finaliser</span>
+      </div>
+    </div>
+
+    <form [formGroup]="signUpForm" (ngSubmit)="onSubmit()" class="form-content">
+
+      <!-- Étape 0: Choix du type d'utilisateur -->
+      <div *ngIf="currentStep === 0" [@slideInOut] class="form-step">
+        <div class="step-header">
+          <h2 class="title">Bienvenue !</h2>
+          <p class="subtitle">Commencez par nous dire qui vous êtes.</p>
+        </div>
+        <div class="user-type-selection">
+          <label class="user-type-option" [class.selected]="signUpForm.get('typeUtilisateur')?.value === TypeUtilisateur.FREELANCE">
+            <input type="radio" formControlName="typeUtilisateur" [value]="TypeUtilisateur.FREELANCE">
+            <div class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 00-2-2H6a2 2 0 00-2 2v9m16 0h2m-2 0v2m-2-2v-2m-12 4h12m-12 0v2m-2-2v-2m2-12h.01M6 3h.01M18 3h.01M4 21h16"/></svg>
+            </div>
+            <h3>Freelance</h3>
+            <p>Je cherche des missions et des opportunités.</p>
+          </label>
+          <label class="user-type-option" [class.selected]="signUpForm.get('typeUtilisateur')?.value === TypeUtilisateur.CLIENT">
+            <input type="radio" formControlName="typeUtilisateur" [value]="TypeUtilisateur.CLIENT">
+            <div class="icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg>
+            </div>
+            <h3>Client</h3>
+            <p>Je souhaite recruter les meilleurs talents.</p>
+          </label>
+        </div>
+        <!-- Sélecteur Type de client (si Client) -->
+        <div *ngIf="getControl('typeUtilisateur').value === TypeUtilisateur.CLIENT" class="input-group">
+          <label class="input-label">Type de client</label>
+          <div class="input-field">
+            <select formControlName="typeClient">
+              <option *ngFor="let t of [TypeClient.PME_STARTUP, TypeClient.ENTREPRENEUR, TypeClient.ETUDIANT_PARTICULIER, TypeClient.CLIENT_ETRANGER]" [value]="t">
+                {{ t.replace('_', ' ') | titlecase }}
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 1: Informations personnelles -->
+      <div *ngIf="currentStep === 1" formGroupName="infosPersonnelles" [@slideInOut] class="form-step">
+        <div class="step-header">
+          <h2 class="title">Informations personnelles</h2>
+          <p class="subtitle">Créez votre compte pour continuer.</p>
+        </div>
+
+        <div class="avatar-upload">
+          <div class="avatar-preview">
+            <img *ngIf="profileImagePreview" [src]="profileImagePreview" alt="Aperçu de l'avatar">
+            <div *ngIf="!profileImagePreview" class="avatar-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+          </div>
+          <label for="file-upload" class="upload-button">Choisir une photo</label>
+          <input id="file-upload" type="file" (change)="onFileSelected($event)" accept="image/*">
+        </div>
+
+        <div class="form-grid">
+          <div class="input-group">
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input type="text" formControlName="prenom" placeholder="Prénom">
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input type="text" formControlName="nom" placeholder="Nom">
+            </div>
+          </div>
+        </div>
+        <div class="input-group">
+          <div class="input-field">
+            <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg></span>
+            <input type="email" formControlName="email" placeholder="Adresse e-mail">
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="input-group">
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
+              <input type="password" formControlName="password" placeholder="Mot de passe">
+            </div>
+          </div>
+          <div class="input-group">
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
+              <input type="password" formControlName="confirmPassword" placeholder="Confirmer le mot de passe">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Étape 2: Détails spécifiques -->
+      <div *ngIf="currentStep === 2" [@slideInOut] class="form-step">
+        <!-- Formulaire Freelance -->
+        <div *ngIf="signUpForm.get('typeUtilisateur')?.value === TypeUtilisateur.FREELANCE" formGroupName="detailsFreelance">
+          <div class="step-header">
+            <h2 class="title">Profil Freelance</h2>
+            <p class="subtitle">Aidez-nous à comprendre votre expertise.</p>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Catégories de missions</label>
+            <div class="chip-selection">
+              <label *ngFor="let category of missionCategories" class="chip" [class.selected]="getArray('detailsFreelance', 'categories').value.includes(category)">
+                <input type="checkbox" [value]="category" (change)="onCheckboxChange('detailsFreelance', 'categories', $event)">
+                {{ category.replace('_', ' ') | titlecase }}
+              </label>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="input-group">
+              <label class="input-label">Tarif Horaire (€)</label>
+              <div class="input-field">
+                <span class="input-icon">€</span>
+                <input type="number" formControlName="tarifHoraire" placeholder="50">
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Niveau d'expérience</label>
+              <div class="input-field">
+                <select formControlName="niveauExperience">
+                  <option *ngFor="let niveau of [NiveauExperience.DEBUTANT, NiveauExperience.INTERMEDIAIRE, NiveauExperience.EXPERT]" [value]="niveau">{{ niveau | titlecase }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="input-group">
+              <label class="input-label">Bio</label>
+              <textarea formControlName="bio" rows="3" placeholder="Présentez-vous en quelques mots..."></textarea>
+          </div>
+        </div>
+        <!-- Formulaire Client -->
+        <div *ngIf="signUpForm.get('typeUtilisateur')?.value === TypeUtilisateur.CLIENT" formGroupName="detailsClient">
+          <div class="step-header">
+            <h2 class="title">Profil Client</h2>
+            <p class="subtitle">Parlez-nous de votre entreprise.</p>
+          </div>
+          <ng-container *ngIf="getControl('typeClient').value !== TypeClient.ENTREPRENEUR && getControl('typeClient').value !== TypeClient.ETUDIANT_PARTICULIER">
+            <div class="input-group">
+              <label class="input-label">Nom de l'entreprise</label>
+              <div class="input-field">
+                <input type="text" formControlName="nomEntreprise" placeholder="Ex: Acme Inc.">
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Site web (optionnel)</label>
+              <div class="input-field">
+                <input type="url" formControlName="siteEntreprise" placeholder="https://www.acme.com">
+              </div>
+            </div>
+          </ng-container>
+          <div class="input-group">
+            <label class="input-label">Parlez-nous de votre projet ou de vous</label>
+            <textarea formControlName="descriptionEntreprise" rows="4" placeholder="Décrivez vos besoins, votre projet ou votre parcours..."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 3: Récapitulatif -->
+      <div *ngIf="currentStep === 3" [@slideInOut] class="form-step">
+        <div class="step-header">
+          <h2 class="title">Prêt à commencer ?</h2>
+          <p class="subtitle">Vérifiez vos informations avant de finaliser.</p>
+        </div>
+        <div class="recap-container">
+            <!-- Avatar -->
+            <div class="recap-avatar">
+                <img *ngIf="profileImagePreview" [src]="profileImagePreview" alt="Aperçu de l'avatar">
+                <div *ngIf="!profileImagePreview" class="avatar-placeholder">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+            </div>
+
+            <!-- Infos Générales -->
+            <div class="recap-card">
+              <div class="recap-card-header">
+                <div class="recap-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></div>
+                <h3>Informations Générales</h3>
+              </div>
+              <div class="recap-item"><span>Email</span> <strong>{{ infosPersonnellesGroup.value.email }}</strong></div>
+              <div class="recap-item"><span>Nom</span> <strong>{{ infosPersonnellesGroup.value.prenom }} {{ infosPersonnellesGroup.value.nom }}</strong></div>
+              <div class="recap-item"><span>Type de compte</span> <strong>{{ getControl('typeUtilisateur').value | titlecase }}</strong></div>
+              <div *ngIf="getControl('typeUtilisateur').value === TypeUtilisateur.CLIENT" class="recap-item">
+                <span>Type de client</span> <strong>{{ getControl('typeClient').value.replace('_', ' ') | titlecase }}</strong>
+              </div>
+            </div>
+
+            <!-- Profil Freelance -->
+            <div *ngIf="getControl('typeUtilisateur').value === TypeUtilisateur.FREELANCE" class="recap-card">
+                <div class="recap-card-header">
+                  <div class="recap-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 00-2-2H6a2 2 0 00-2 2v9m16 0h2m-2 0v2m-2-2v-2m-12 4h12m-12 0v2m-2-2v-2m2-12h.01M6 3h.01M18 3h.01M4 21h16"/></svg></div>
+                  <h3>Profil Freelance</h3>
+                </div>
+                <div *ngIf="detailsFreelanceGroup.value.tarifHoraire" class="recap-item"><span>Tarif horaire</span> <strong>{{ detailsFreelanceGroup.value.tarifHoraire }} €</strong></div>
+                <div *ngIf="detailsFreelanceGroup.value.niveauExperience" class="recap-item"><span>Expérience</span> <strong>{{ detailsFreelanceGroup.value.niveauExperience | titlecase }}</strong></div>
+                <div *ngIf="getArray('detailsFreelance', 'categories').value.length" class="recap-item recap-item-list"><span>Catégories</span> 
+                    <div class="chip-list">
+                        <span *ngFor="let cat of getArray('detailsFreelance', 'categories').value" class="recap-chip">{{ cat.replace('_', ' ') | titlecase }}</span>
+                    </div>
+                </div>
+                <div *ngIf="detailsFreelanceGroup.value.bio" class="recap-item recap-item-full"><span>Bio</span> <p>{{ detailsFreelanceGroup.value.bio }}</p></div>
+            </div>
+
+            <!-- Profil Client -->
+            <div *ngIf="getControl('typeUtilisateur').value === TypeUtilisateur.CLIENT" class="recap-card">
+              <div class="recap-card-header">
+                <div class="recap-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6m3-3h-6"/></svg></div>
+                <h3>Profil Client</h3>
+              </div>
+              <ng-container *ngIf="getControl('typeClient').value !== TypeClient.ENTREPRENEUR && getControl('typeClient').value !== TypeClient.ETUDIANT_PARTICULIER">
+                  <div *ngIf="detailsClientGroup.value.nomEntreprise" class="recap-item"><span>Entreprise</span> <strong>{{ detailsClientGroup.value.nomEntreprise }}</strong></div>
+                  <div *ngIf="detailsClientGroup.value.siteEntreprise" class="recap-item"><span>Site Web</span> <strong>{{ detailsClientGroup.value.siteEntreprise }}</strong></div>
+              </ng-container>
+              <div *ngIf="detailsClientGroup.value.descriptionEntreprise" class="recap-item recap-item-full"><span>Description</span> <p>{{ detailsClientGroup.value.descriptionEntreprise }}</p></div>
+            </div>
+        </div>
+        <div *ngIf="errorMessage" class="error-message server-error">{{ errorMessage }}</div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="navigation-buttons">
+        <button type="button" *ngIf="currentStep > 0" (click)="prevStep()" class="btn-secondary">Précédent</button>
+        <button type="button" *ngIf="currentStep < 3" (click)="nextStep()" [disabled]="!isStepValid(currentStep)" class="btn-primary">Suivant</button>
+        <button type="submit" *ngIf="currentStep === 3" [disabled]="signUpForm.invalid" class="btn-primary">Créer mon compte</button>
+      </div>
+
+      <div class="auth-link">
+        <p>Déjà un compte ? <a routerLink="/login">Connectez-vous</a></p>
+      </div>
+    </form>
+  </div>
+</div>

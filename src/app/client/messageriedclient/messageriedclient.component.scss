@@ -1,0 +1,29 @@
+@import 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+
+// Copie intégrale du style freelance pour la messagerie client
+// (S'assure d'une cohérence visuelle entre les deux rôles)
+
+:host {
+  --bg-main: #F7F8FC;
+  --bg-sidebar: #FFFFFF;
+  --bg-chat-window: #F0F2F5;
+  --bg-hover: #F5F6F6;
+  --bg-active-conversation: linear-gradient(100deg, #FF8A49, #FF5A5F);
+  --bg-sent-bubble: #FFEADD;
+  --bg-received-bubble: #F0F2F5;
+  --bg-input: #FFFFFF;
+  --primary-color: #FF5A5F;
+  --text-dark: #09132C;
+  --text-normal: #374151;
+  --text-muted: #6B7280;
+  --text-light: #FFFFFF;
+  --border-color: #E5E7EB;
+  --shadow-color: rgba(100, 100, 150, 0.12);
+  --font-family: 'Inter', sans-serif;
+  --success-color: #34D399;
+  --danger-color: #EF4444;
+}
+
+/* (Le reste du fichier SCSS est identique à celui du freelance — voir précédent) */
+
+@import '../../freelencer/chattingfreelencer/chattingfreelencer.component.scss';

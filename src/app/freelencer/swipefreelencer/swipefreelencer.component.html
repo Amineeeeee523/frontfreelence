@@ -1,0 +1,139 @@
+<div class="swipe-container" *ngIf="!isLoading">
+  <!-- No Missions State -->
+  <div *ngIf="missions.length === 0" class="no-missions">
+    <div class="icon-container">
+      <fa-icon [icon]="faSync" size="3x" class="fa-spin"></fa-icon>
+    </div>
+    <h2>Plus de missions pour le moment</h2>
+    <p>Revenez plus tard pour de nouvelles opportunités.</p>
+    <button (click)="reloadMissions()" class="retry-button">
+      <fa-icon [icon]="faSync"></fa-icon> Recharger
+    </button>
+  </div>
+
+  <!-- Swipe Area: Cards + Actions -->
+  <div class="swipe-area" *ngIf="missions.length > 0">
+    <!-- Swipe Cards Stack -->
+    <div class="card-stack-container">
+      <ng-container *ngFor="let mission of missions; let i = index; trackBy: trackByMissionId">
+        <div class="card-wrapper" [style.zIndex]="i" [class.animating]="animating && i === currentIndex">
+          <div class="swipe-card"
+               [class.like]="mission.decision === 'like'"
+               [class.dislike]="mission.decision === 'dislike'"
+               (pointerdown)="handlePointerDown($event, i)"
+               (pointermove)="handlePointerMove($event)"
+               (pointerup)="handlePointerUp($event, mission.id, i)"
+               (pointercancel)="handlePointerUp($event, mission.id, i)">
+
+            <div class="swipe-overlay like" [style.opacity]="getLikeOpacity(i)">
+              LIKE
+              <div class="overlay-extra-info" *ngIf="mission.scoreCompatibilite">
+                <fa-icon [icon]="faFire"></fa-icon>
+                <span>{{ (mission.scoreCompatibilite || 0) * 100 | number:'1.0-0' }}% Match</span>
+              </div>
+            </div>
+            <div class="swipe-overlay dislike" [style.opacity]="getDislikeOpacity(i)">
+              NOPE
+              <div class="overlay-extra-info">
+                <span>Passer</span>
+              </div>
+            </div>
+
+            <div class="card-content">
+              <!-- Client Info -->
+              <div class="client-info">
+                <img [src]="mission.clientAvatarUrl || 'https://i.pravatar.cc/50?u=' + mission.clientId" alt="Avatar client" class="client-avatar">
+                <div class="client-details">
+                  <span class="client-name">{{ mission.clientNom }}</span>
+                  <div class="client-badges">
+                    <span class="badge verified" *ngIf="mission.clientEstVerifie"><fa-icon [icon]="faCheckCircle"></fa-icon> Client Vérifié</span>
+                    <span class="badge match-score" *ngIf="mission.scoreCompatibilite"><fa-icon [icon]="faStar"></fa-icon> {{ (mission.scoreCompatibilite || 0) * 100 | number:'1.0-0' }}% Match</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Mission Title -->
+              <h3 class="mission-title">{{ mission.titre }}</h3>
+
+              <!-- Mission Details Grid -->
+              <div class="mission-meta">
+                <div class="meta-item budget"><fa-icon [icon]="faEuroSign"></fa-icon> {{ mission.budget | currency:'TND':'symbol':'1.0-0' }}</div>
+                <div class="meta-item duration"><fa-icon [icon]="faClock"></fa-icon> {{ mission.dureeEstimeeJours }} jours</div>
+                <div class="meta-item location"><fa-icon [icon]="faMapMarkerAlt"></fa-icon> {{ mission.localisation || 'Remote' }}</div>
+                <div class="meta-item published-date" *ngIf="mission.datePublication">
+                  <fa-icon [icon]="faCalendarDay"></fa-icon> {{ formatDate(mission.datePublication) }}
+                </div>
+              </div>
+
+              <!-- Aperçu média (image principale + compteur) -->
+              <div class="media-preview" *ngIf="mission.mediaUrls && mission.mediaUrls.length">
+                <img [src]="mission.mediaUrls[0]" alt="Aperçu mission" />
+                <div class="media-count" *ngIf="mission.mediaUrls.length > 1">+{{ mission.mediaUrls.length - 1 }}</div>
+                <button class="video-play" *ngIf="mission.videoBriefUrl" (click)="openVideo(mission.videoBriefUrl); $event.stopPropagation();">
+                  <fa-icon [icon]="faPlayCircle"></fa-icon>
+                </button>
+              </div>
+
+              <!-- Résumé / description courte -->
+              <p class="mission-summary" *ngIf="mission.resume">{{ mission.resume }}</p>
+
+              <!-- Compétences requises -->
+              <div class="mission-skills" *ngIf="mission.competencesRequises && mission.competencesRequises.length">
+                <span class="skill-badge" *ngFor="let skill of mission.competencesRequises">{{ skill }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="swipe-actions">
+      <button class="action-button dislike" (click)="onDislike()">
+        <fa-icon [icon]="faTimes" class="custom-size"></fa-icon>
+      </button>
+      <button class="action-button select" (click)="onLike()">
+        <fa-icon [icon]="faCheck" class="custom-size"></fa-icon>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Spinner -->
+<div *ngIf="isLoading" class="loading-spinner-overlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- Match Overlay -->
+<div class="match-overlay" *ngIf="matchPopup">
+  <div class="confetti-container">
+    <!-- Le SCSS générera 50 confettis avec des couleurs et délais aléatoires -->
+    <div class="confetti"></div> <div class="confetti"></div> <div class="confetti"></div>
+    <div class="confetti"></div> <div class="confetti"></div> <div class="confetti"></div>
+    <div class="confetti"></div> <div class="confetti"></div> <div class="confetti"></div>
+    <div class="confetti"></div> <div class="confetti"></div> <div class="confetti"></div>
+  </div>
+  <div class="match-card animate-in">
+    <div class="match-header">
+      <span class="match-title"><span>It's a Match!</span></span>
+    </div>
+    <div class="match-avatars">
+      <div class="avatar-container freelance-avatar">
+        <img [src]="matchPopup.freelancePhotoUrl || 'https://placehold.co/120x120/4A90E2/FFFFFF?text=F'" alt="Photo du Freelance">
+      </div>
+      <div class="avatar-container client-avatar">
+        <img [src]="matchPopup.clientPhotoUrl || 'https://placehold.co/120x120/FF6B2E/FFFFFF?text=C'" alt="Photo du Client">
+      </div>
+      <div class="heart-icon">❤️</div>
+    </div>
+    <p class="match-text">
+      Vous et <strong>{{ matchPopup.clientNom }}</strong> êtes maintenant connectés pour la mission :<br>
+      <em>"{{ matchPopup.missionTitre }}"</em>
+    </p>
+    <div class="match-actions">
+      <button class="action-chat" (click)="goToChat()">Ouvrir la discussion</button>
+      <button class="action-keep-swiping" (click)="matchPopup = undefined">Continuer à swiper</button>
+    </div>
+  </div>
+</div>
+

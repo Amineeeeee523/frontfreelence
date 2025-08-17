@@ -1,0 +1,23 @@
+<div class="sidebar" [class.collapsed]="isCollapsed$ | async">
+  <div class="sidebar-header">
+    <img src="assets/Logo.png" alt="Logo Forsa" class="logo" (click)="toggleSidebar()">
+  </div>
+  
+  <div class="sidebar-separator"></div>
+
+  <nav class="navigation">
+    <ul>
+      <li><a routerLink="/freelencer/dashboard" [class.active]="isLinkActive('/freelencer/dashboard')"><fa-icon [icon]="faTachometerAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Tableau de bord</span></a></li>
+      <li><a routerLink="/freelencer/swipe" [class.active]="isLinkActive('/freelencer/swipe')"><fa-icon [icon]="faHeart"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Matcher des missions</span></a></li>
+      <li><a routerLink="/freelencer/projects" [class.active]="isLinkActive('/freelencer/projects')"><fa-icon [icon]="faFolder"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Mes missions</span></a></li>
+      <li><a routerLink="/freelencer/chat" [class.active]="isLinkActive('/freelencer/chat')"><fa-icon [icon]="faCommentDots"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Messagerie</span></a></li>
+    </ul>
+  </nav>
+
+  <div class="sidebar-footer">
+    <ul>
+        <li><a routerLink="/freelencer/settings" [class.active]="isLinkActive('/freelencer/settings')"><fa-icon [icon]="faCog"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Paramètres</span></a></li>
+        <li><a (click)="logout()"><fa-icon [icon]="faSignOutAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Déconnexion</span></a></li>
+    </ul>
+  </div>
+</div>
