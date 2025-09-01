@@ -8,7 +8,7 @@ import { MissionSummary } from '../models/mission-summary.model';
 import { Swipe, Decision as SwipeDecision } from '../models/swipe.model';
 import { ClientSwipe } from '../models/client-swipe.model';
 import { Mission } from '../models/mission.model';
-import { UtilisateurSummaryModel } from '../models/utilisateur-summary.model';
+import { FreelanceSummary } from '../models/freelance-summary.model';
 
 @Injectable({ providedIn: 'root' })
 export class SwipeService {
@@ -22,19 +22,21 @@ export class SwipeService {
     if (categorie) {
       params = params.append('categorie', categorie);
     }
-    // Backend renvoie MissionSummaryDTO – on le caste en Mission (champs sup optionnels)
+    // Backend renvoie MissionSummaryDTO
     return this.http.get<MissionSummary[]>(`${this.api}/available`, { params, withCredentials: true });
   }
 
   /** 2. Swipe FREELANCE → mission */
-  swipeMission(missionId: number, freelanceId: number, decision: SwipeDecision): Observable<Swipe> {
-    const params = new HttpParams().set('decision', decision);
+  swipeMission(missionId: number, freelanceId: number, decision: SwipeDecision, dwellTimeMs?: number): Observable<Swipe> {
+    let params = new HttpParams().set('decision', decision);
+    if (typeof dwellTimeMs === 'number') params = params.set('dwellTimeMs', dwellTimeMs.toString());
     return this.http.post<Swipe>(`${this.api}/mission/${missionId}/freelance/${freelanceId}`, {}, { params, withCredentials: true });
   }
 
   /** 3. Swipe CLIENT → freelance */
-  clientSwipeFreelance(missionId: number, clientId: number, freelanceId: number, decision: SwipeDecision): Observable<ClientSwipe> {
-    const params = new HttpParams().set('decision', decision);
+  clientSwipeFreelance(missionId: number, clientId: number, freelanceId: number, decision: SwipeDecision, dwellTimeMs?: number): Observable<ClientSwipe> {
+    let params = new HttpParams().set('decision', decision);
+    if (typeof dwellTimeMs === 'number') params = params.set('dwellTimeMs', dwellTimeMs.toString());
     return this.http.post<ClientSwipe>(`${this.api}/mission/${missionId}/client/${clientId}/freelance/${freelanceId}`, {}, { params, withCredentials: true });
   }
 
@@ -63,9 +65,9 @@ export class SwipeService {
 
 
   /** 8. Récupérer les freelances qui ont liké une mission (vue client) */
-getFreelancersWhoLikedMission(missionId: number, clientId: number): Observable<UtilisateurSummaryModel[]> {
+getFreelancersWhoLikedMission(missionId: number, clientId: number): Observable<FreelanceSummary[]> {
   const params = new HttpParams().set('clientId', clientId.toString());
-  return this.http.get<UtilisateurSummaryModel[]>(`${this.api}/mission/${missionId}/likes`, { params, withCredentials: true });
+  return this.http.get<FreelanceSummary[]>(`${this.api}/mission/${missionId}/likes`, { params, withCredentials: true });
 }
 
 
@@ -76,9 +78,9 @@ getFreelancersWhoLikedMission(missionId: number, clientId: number): Observable<U
 
 
 /** 9. Explorer les freelances compatibles avec une mission (matching compétences) */
-exploreFreelancers(missionId: number, clientId: number): Observable<UtilisateurSummaryModel[]> {
+exploreFreelancers(missionId: number, clientId: number): Observable<FreelanceSummary[]> {
   const params = new HttpParams().set('clientId', clientId.toString());
-  return this.http.get<UtilisateurSummaryModel[]>(
+  return this.http.get<FreelanceSummary[]>(
     `${this.api}/mission/${missionId}/explore`,
     { params, withCredentials: true }
   );

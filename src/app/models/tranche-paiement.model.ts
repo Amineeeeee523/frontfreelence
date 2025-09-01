@@ -1,6 +1,8 @@
 // src/app/core/models/tranche-paiement.model.ts
 import { Mission } from './mission.model';
 import { Utilisateur } from './utilisateur.model';
+import { Devise } from './devise.enum.js';
+import { Livrable } from './livrable.model';
 
 export enum StatutTranche {
   EN_ATTENTE_DEPOT       = 'EN_ATTENTE_DEPOT',
@@ -24,6 +26,7 @@ export interface TranchePaiement {
   montantBrut: number;
   commissionPlateforme: number;
   montantNetFreelance: number;
+  // Backend uses string (e.g., "TND"); keep compatibility while allowing enum usage elsewhere
   devise: string;
   statut: StatutTranche;
 
@@ -34,15 +37,21 @@ export interface TranchePaiement {
   dateVersement?: string;
 
   /* Paymee */
+  paymeeCheckoutId?: string;
   paymeePaymentUrl?: string;
 
   /* Relations */
-  missionId: number;
-  clientId: number;
-  freelanceId: number;
+  missionId?: number;
+  clientId?: number;
+  freelanceId?: number;
 
   /* (Facultatif : navigation) */
   mission?: Mission;
   client?: Utilisateur;
   freelance?: Utilisateur;
+  livrableAssocie?: Livrable;
+
+  /* Indicateurs alignés backend */
+  required?: boolean;
+  finale?: boolean;
 }

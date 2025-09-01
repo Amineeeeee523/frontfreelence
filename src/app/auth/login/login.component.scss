@@ -3,37 +3,37 @@
 :host {
   // --- Design System "Promatch" ---
   // Couleurs de base
-  --bg-color: #F7F8FC;
-  --card-bg: #ffffff;
-  --border-color: #E5E7EB;
-  --primary-color: #FF4D6A; // Rose-rouge vibrant (gardé)
-  --primary-gradient: linear-gradient(135deg, #FF2D55, #FF9500); // Orange-rose (gardé)
+  --bg-color: #FDFBFF;
+  --card-bg: #FFFFFF;
+  --border-color: rgba(15, 23, 42, 0.05);
+  --primary-color: #D946EF; // Magenta (Home)
+  --primary-gradient: linear-gradient(90deg, #D946EF, #22D3EE); // Magenta → Cyan
 
   // Couleurs de texte
-  --text-dark: #1F2937;
-  --text-normal: #374151;
-  --text-muted: #6B7280;
+  --text-dark: #0F172A;
+  --text-normal: #475569;
+  --text-muted: #94A3B8;
 
   // Éléments de formulaire
-  --input-bg: #F9FAFB;
+  --input-bg: #F8FAFC;
   --input-text: var(--text-dark);
   --input-border-focus: var(--primary-color);
   --button-text: #ffffff;
 
   // Autres
   --error-color: #EF4444;
-  --soft-shadow: 0 8px 16px rgba(0,0,0,0.05);
-  --hover-shadow: 0 12px 24px rgba(0,0,0,0.1);
+  --soft-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --hover-shadow: 0 12px 24px rgba(0,0,0,0.08);
   --font-family: 'Inter', sans-serif;
   
-  // Nouvelles variables pour les effets ultra modernes avec plus d'orange
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --neon-glow: 0 0 20px rgba(255, 77, 106, 0.3);
-  --input-focus-glow: 0 0 0 3px rgba(255, 77, 106, 0.2);
-  --button-hover-glow: 0 0 30px rgba(255, 45, 85, 0.4);
-  --mauve-accent: #8B5CF6; // Touche de mauve
-  --orange-accent: #FF9500; // Plus d'orange
+  // Variables Home (mauve/cyan) pour effets
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(15, 23, 42, 0.05);
+  --neon-glow: 0 6px 18px rgba(217, 70, 239, 0.12);
+  --input-focus-glow: 0 0 0 3px rgba(217, 70, 239, 0.1);
+  --button-hover-glow: 0 0 30px rgba(217, 70, 239, 0.2);
+  --mauve-accent: #A77AFB; // Lilas
+  --orange-accent: #22D3EE; // Cyan (accent)
 }
 
 .login-container {
@@ -42,7 +42,7 @@
   justify-content: center;
   min-height: 100vh;
   width: 100%;
-  background: linear-gradient(135deg, #F7F8FC 0%, #FFF5F0 50%, #F8F4FF 100%);
+  background: linear-gradient(180deg, #FDFBFF 0%, #F7F5FF 100%);
   padding: 1rem;
   font-family: var(--font-family);
   position: relative;
@@ -157,7 +157,7 @@
   }
 
   &:hover {
-    color: var(--orange-accent);
+    color: var(--primary-color);
     transform: translateX(-3px);
   }
   
@@ -202,7 +202,7 @@
     transform: translateX(-50%);
     width: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--orange-accent), #FF6B35);
+    background: var(--primary-gradient);
     border-radius: 2px;
     animation: expandWidth 1.5s ease-out 0.5s forwards;
   }
@@ -249,8 +249,8 @@
   overflow: hidden;
 
   &:focus-within {
-    border-color: var(--orange-accent);
-    box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2);
+    border-color: var(--primary-color);
+    box-shadow: var(--input-focus-glow);
     transform: translateY(-1px);
   }
 
@@ -283,7 +283,7 @@
 }
 
 .input-field:focus-within .input-icon {
-  color: var(--orange-accent);
+  color: var(--primary-color);
 }
 
 .input-field:focus-within .input-icon svg {
@@ -310,7 +310,7 @@ input {
     outline: none;
     
     &::placeholder {
-      color: var(--orange-accent);
+      color: var(--primary-color);
     }
   }
 }
@@ -329,7 +329,7 @@ input {
   overflow: hidden;
 
   &:hover {
-    color: var(--orange-accent);
+    color: var(--primary-color);
     transform: scale(1.1);
   }
 
@@ -347,7 +347,7 @@ input {
 }
 
 .forgot-password-link {
-  color: var(--orange-accent);
+  color: var(--primary-color);
   text-decoration: none;
   font-size: 0.9rem;
   font-weight: 500;
@@ -362,7 +362,7 @@ input {
     left: 0;
     width: 0;
     height: 1px;
-    background: var(--orange-accent);
+    background: var(--primary-color);
     transition: width 0.3s ease;
   }
 
@@ -407,7 +407,7 @@ input {
 .submit-btn {
   width: 100%;
   padding: 0.875rem;
-  background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
+  background: var(--primary-gradient);
   color: var(--button-text);
   border: none;
   border-radius: 12px;
@@ -415,19 +415,19 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 20px rgba(255, 149, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(217, 70, 239, 0.25);
   position: relative;
   overflow: hidden;
   animation: fadeInUp 0.8s ease-out 1s backwards;
 
   &:hover:not(:disabled) {
     transform: translateY(-3px) scale(1.02);
-    box-shadow: 0 10px 25px rgba(255, 149, 0, 0.4);
+    box-shadow: 0 10px 25px rgba(34, 211, 238, 0.35);
   }
 
   &:active:not(:disabled) {
     transform: translateY(-1px) scale(1.01);
-    box-shadow: 0 4px 10px rgba(255, 149, 0, 0.3);
+    box-shadow: 0 4px 10px rgba(217, 70, 239, 0.2);
   }
 
   &:disabled {
@@ -445,7 +445,7 @@ input {
   animation: fadeInUp 0.8s ease-out 1.2s backwards;
 
   a {
-    color: var(--orange-accent);
+    color: var(--primary-color);
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
@@ -459,7 +459,7 @@ input {
       left: 0;
       width: 0;
       height: 1px;
-      background: var(--orange-accent);
+      background: var(--primary-color);
       transition: width 0.3s ease;
     }
 

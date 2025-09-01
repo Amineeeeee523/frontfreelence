@@ -1,7 +1,7 @@
-<div class="chat-container">
+<div class="chat" [class.has-sidebar-open]="isSidebarOpen">
 
   <!-- Sidebar -->
-  <div class="chat-sidebar" [class.open]="isSidebarOpen">
+  <div class="chat__sidebar" [class.open]="isSidebarOpen" role="complementary" aria-label="Conversations">
     <div class="sidebar-header">
       <button class="sidebar-close" (click)="toggleSidebar()">
         <fa-icon [icon]="faTimes"></fa-icon>
@@ -10,7 +10,7 @@
         <h2>Messagerie</h2>
         <span class="badge">{{ filteredConversations.length }}</span>
       </div>
-      <div class="search-container">
+      <div class="search-container sidebar__search">
         <div class="search-input-wrapper">
           <fa-icon [icon]="faSearch" class="search-icon"></fa-icon>
           <input 
@@ -26,7 +26,7 @@
         </div>
       </div>
     </div>
-    <div class="conversation-list">
+    <div class="conversation-list" role="list">
       <div *ngIf="isLoading && conversations.length === 0" class="loading-conversations">
         <div class="spinner"></div>
         <p>Chargement...</p>
@@ -34,6 +34,8 @@
       <div *ngFor="let conv of filteredConversations" 
            class="conversation-item"
            [class.active]="conv.conversationId === selectedConversation?.conversationId"
+           role="listitem"
+           [attr.aria-selected]="conv.conversationId === selectedConversation?.conversationId"
            (click)="selectConversation(conv)">
         <div class="avatar-container">
           <img [src]="conv.otherUserPhotoUrl || 'assets/default-avatar.png'" [alt]="conv.otherUserNomComplet" class="avatar">
@@ -56,11 +58,11 @@
   </div>
 
   <!-- Main Chat Window -->
-  <div class="chat-main">
+  <div class="chat__thread">
     <ng-container *ngIf="selectedConversation; else noConversation">
       
       <!-- Chat Header -->
-      <div class="chat-header">
+      <div class="thread__header">
          <button class="sidebar-toggle" (click)="toggleSidebar()">
             <fa-icon [icon]="faBars"></fa-icon>
         </button>
@@ -77,13 +79,13 @@
       </div>
 
       <!-- Message Area -->
-      <div class="message-area" #messageContainer (scroll)="onScroll($event)">
+      <div class="thread__body" #messageContainer (scroll)="onScroll($event)" role="log" aria-live="polite">
         <div *ngIf="isLoadingMore" class="loading-more-spinner">
           <div class="spinner"></div>
         </div>
         <ng-container *ngFor="let group of messageGroups">
-            <div class="date-separator">
-                <span>{{ group.date }}</span>
+            <div class="date-separator msg-day">
+                <span class="chip">{{ group.date }}</span>
             </div>
             <div *ngFor="let msg of group.messages; let i = index" 
                 class="message-wrapper" 
@@ -93,15 +95,18 @@
                     'first-of-group': !isConsecutiveMessage(group.messages, i, true),
                     'last-of-group': !isConsecutiveMessage(group.messages, i, false),
                     'pending': msg.status === MessageStatus.PENDING,
-                    'failed': msg.status === MessageStatus.FAILED
+                    'failed': msg.status === MessageStatus.FAILED,
+                    'msg-row': true,
+                    'from-you': isMyMessage(msg),
+                    'from-them': !isMyMessage(msg)
                 }">
                 <div *ngIf="!isMyMessage(msg) && !isConsecutiveMessage(group.messages, i, true)" class="avatar-in-message">
                   <img [src]="selectedConversation.otherUserPhotoUrl || 'assets/default-avatar.png'" alt="" class="avatar-small">
                 </div>
-                <div class="message-bubble">
+                <div class="message-bubble msg" [ngClass]="{'msg--out': isMyMessage(msg), 'msg--you': isMyMessage(msg), 'msg--in': !isMyMessage(msg), 'msg--them': !isMyMessage(msg)}">
                     <p class="message-content" [innerHTML]="msg.content | linky"></p>
                     <div class="message-meta">
-                      <span class="message-timestamp">{{ msg.timestamp | date:'HH:mm' }}</span>
+                      <span class="message-timestamp msg__time">{{ msg.timestamp | date:'HH:mm' }}</span>
                       <div *ngIf="isMyMessage(msg)" class="message-status">
                         <fa-icon *ngIf="msg.status === MessageStatus.PENDING" [icon]="faClock" class="pending-icon"></fa-icon>
                         <fa-icon *ngIf="msg.status === MessageStatus.SENT && msg.seen" [icon]="faCheckDouble" class="seen-receipt"></fa-icon>
@@ -114,16 +119,16 @@
       </div>
 
       <!-- Input Area -->
-      <div class="chat-input-area">
-        <div class="input-wrapper">
+      <div class="thread__composer">
+        <div class="composer input-wrapper">
           <textarea 
                  #messageInput
-                 class="message-input" 
+                 class="message-input input" 
                  placeholder="Écrivez votre message..."
                  [(ngModel)]="messageContent"
                  (keydown.enter)="sendMessage($event)"
                  (input)="autoGrowTextarea($event)"></textarea>
-          <button class="send-button" (click)="sendMessage($event)" [disabled]="!messageContent.trim()">
+          <button class="send-button btn-send" (click)="sendMessage($event)" [disabled]="!messageContent.trim()">
             <fa-icon [icon]="faPaperPlane"></fa-icon>
           </button>
         </div>

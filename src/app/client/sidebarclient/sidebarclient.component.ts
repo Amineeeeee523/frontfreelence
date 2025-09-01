@@ -3,9 +3,9 @@ import { Router, RouterLink } from '@angular/router';
 import { AsyncPipe, CommonModule, NgIf } from '@angular/common';
 import { FaIconComponent } from '@fortawesome/angular-fontawesome';
 import {
-  faTachometerAlt, faFolder, faUsers, faSearch,
-  faCommentDots, faProjectDiagram, faCreditCard,
-  faQuestionCircle, faSignOutAlt
+  faFolder, faUsers, faCreditCard,
+  faGauge, faRightFromBracket, faMagnifyingGlass, 
+  faCommentDots as faMessage, faQuestionCircle
 } from '@fortawesome/free-solid-svg-icons';
 
 import { SidebarStateService } from '../../core/sidebar-state.service';
@@ -23,15 +23,14 @@ export class SidebarclientComponent implements OnInit {
 
   isCollapsed$: Observable<boolean>;
 
-  faTachometerAlt = faTachometerAlt;
+  faGauge = faGauge;
   faFolder = faFolder;
+  faSearch = faMagnifyingGlass; // Use faMagnifyingGlass for search
   faUsers = faUsers;
-  faSearch = faSearch;
-  faCommentDots = faCommentDots;
-  faProjectDiagram = faProjectDiagram;
+  faCommentDots = faMessage; // Use faMessage for consistency
   faCreditCard = faCreditCard;
   faQuestionCircle = faQuestionCircle;
-  faSignOutAlt = faSignOutAlt;
+  faRightFromBracket = faRightFromBracket;
 
   constructor(
     private sidebarState: SidebarStateService,

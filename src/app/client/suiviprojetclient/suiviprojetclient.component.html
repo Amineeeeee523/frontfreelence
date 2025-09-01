@@ -132,8 +132,8 @@
           </div>
           <div class="livrable-actions">
             <ng-container *ngIf="livrable.status === 'EN_ATTENTE'">
-              <button class="action-btn validate" (click)="handleLivrableAction(livrable.id, 'valider', livrable.missionId)"><fa-icon [icon]="faCheck"></fa-icon></button>
-              <button class="action-btn reject" (click)="handleLivrableAction(livrable.id, 'rejeter', livrable.missionId)"><fa-icon [icon]="faTimes"></fa-icon></button>
+              <button type="button" class="action-btn validate" (click)="handleLivrableAction(livrable.id, 'valider', livrable.missionId)"><fa-icon [icon]="faCheck"></fa-icon></button>
+              <button type="button" class="action-btn reject" (click)="handleLivrableAction(livrable.id, 'rejeter', livrable.missionId)"><fa-icon [icon]="faTimes"></fa-icon></button>
             </ng-container>
           </div>
       </div>

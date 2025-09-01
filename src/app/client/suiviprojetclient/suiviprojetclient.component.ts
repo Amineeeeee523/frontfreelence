@@ -8,10 +8,12 @@ import {
   faEye, faBoxOpen, faCheck, faTimes, faSpinner, faDownload, faExclamationCircle, faLink
 } from '@fortawesome/free-solid-svg-icons';
 
-import { Mission, MissionStatut } from '../../models/mission.model';
+import { MissionStatut } from '../../models/mission.model';
+import { MissionCard } from '../../models/mission-card.model';
 import { Livrable, StatusLivrable } from '../../models/livrable.model';
 import { Utilisateur } from '../../models/utilisateur.model';
-import { UtilisateurSummaryModel } from '../../models/utilisateur-summary.model';
+import { FreelanceSummary } from '../../models/freelance-summary.model';
+// import removed: UtilisateurSummaryModel not used after refactor
 
 import { MissionsService } from '../../services/missions.service';
 import { LivrableService } from '../../services/livrable.service';
@@ -20,8 +22,8 @@ import { UtilisateurService } from '../../services/utilisateurs.service';
 import { FileStorageService } from '../../services/file-storage.service';
 
 // Interface pour enrichir la mission avec le freelance et la progression
-interface MissionView extends Mission {
-  freelance?: Utilisateur;
+interface MissionView extends MissionCard {
+  freelance?: FreelanceSummary;
   livrablesEnAttente?: number;
 }
 
@@ -90,8 +92,7 @@ export class SuiviprojetclientComponent implements OnInit {
 
   loadClientMissions(clientId: number): void {
     this.isLoading.set(true);
-    this.missionsService.getMissionsByClient(clientId).subscribe(missions => {
-      // Pour chaque mission, charger le freelance associé
+    this.missionsService.getMissionsByClient(clientId).subscribe((missions: MissionCard[]) => {
       const missionViewPromises = missions.map(m => this.enrichMission(m));
       Promise.all(missionViewPromises).then(enrichedMissions => {
         this.allMissions.set(enrichedMissions);
@@ -100,39 +101,37 @@ export class SuiviprojetclientComponent implements OnInit {
     });
   }
 
-  async enrichMission(mission: Mission): Promise<MissionView> {
+  async enrichMission(mission: MissionCard): Promise<MissionView> {
     console.log('[SuiviProjet] Enrich mission', mission.id, mission.titre);
     const view: MissionView = { ...mission, livrablesEnAttente: 0 };
 
     const anyMission = mission as any;
-    let summary: UtilisateurSummaryModel | undefined = anyMission.freelanceSummary || anyMission.freelance || undefined;
+    let summary: FreelanceSummary | undefined = anyMission.freelance || undefined;
     console.log('  → summary from mission =', summary);
 
     if (summary) {
-      const photoAbs = this.fileStorageService.makeAbsolute(summary.photoUrl || '');
+      const photoAbs = this.fileStorageService.makeAbsolute(summary.photoUrl || (summary as any).photoProfilUrl || '');
       console.log('  → photoAbs (from summary)=', photoAbs);
-      view.freelance = {
-        id: summary.id,
-        nom: summary.nom,
-        prenom: summary.prenom,
-        photoProfilUrl: photoAbs,
-        email: '',
-        typeUtilisateur: 'FREELANCE' as any,
-        estActif: true,
-        dateCreation: ''
-      } as Utilisateur;
-    } else if (mission.freelanceSelectionneId) {
-      console.log('  → Fetching freelance via API id=', mission.freelanceSelectionneId);
+      view.freelance = { ...summary, photoUrl: photoAbs, photoProfilUrl: photoAbs, typeUtilisateur: 'FREELANCE' } as FreelanceSummary;
+    } else if ((anyMission.freelanceSelectionneId as number | undefined)) {
+      console.log('  → Fetching freelance via API id=', anyMission.freelanceSelectionneId);
       try {
-        const freelance = await firstValueFrom(this.utilisateurService.getUtilisateurById(mission.freelanceSelectionneId));
+        const freelance = await firstValueFrom(this.utilisateurService.getUtilisateurById(anyMission.freelanceSelectionneId));
         console.log('  → API freelance=', freelance);
         if (freelance) {
-          freelance.photoProfilUrl = this.fileStorageService.makeAbsolute(freelance.photoProfilUrl || '');
-          console.log('  → photoAbs (from API)=', freelance.photoProfilUrl);
-          view.freelance = freelance;
+          const photoAbs = this.fileStorageService.makeAbsolute(freelance.photoProfilUrl || '');
+          console.log('  → photoAbs (from API)=', photoAbs);
+          view.freelance = {
+            id: freelance.id!,
+            nom: freelance.nom,
+            prenom: freelance.prenom,
+            photoUrl: photoAbs,
+            photoProfilUrl: photoAbs,
+            typeUtilisateur: 'FREELANCE'
+          } as FreelanceSummary;
         }
       } catch (e) {
-        console.error(`Impossible de charger le freelance ID ${mission.freelanceSelectionneId}`, e);
+        console.error(`Impossible de charger le freelance ID ${anyMission.freelanceSelectionneId}`, e);
       }
     } else {
       console.warn('  → Aucun freelance assigné à cette mission');

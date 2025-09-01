@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faHeart, faTimes, faSync, faEuroSign, faClock, faCalendarDay, faMapMarkerAlt, faCheckCircle, faPlayCircle, faBriefcase, faFire, faInfoCircle, faBullseye, faListCheck, faUserTie, faFileSignature, faStar, faCheck } from '@fortawesome/free-solid-svg-icons';
-import { catchError, finalize, switchMap, take, map } from 'rxjs/operators';
+import { faHeart, faTimes, faSync, faEuroSign, faClock, faCalendarDay, faMapMarkerAlt, faCheckCircle, faPlayCircle, faFire, faStar, faCheck, faBriefcase, faChevronDown } from '@fortawesome/free-solid-svg-icons';
+import { catchError, finalize, switchMap, take, map, tap } from 'rxjs/operators';
 import { EMPTY, of, forkJoin } from 'rxjs';
 
 import { MissionViewModel } from '../../models/mission-view.model';
@@ -10,10 +10,11 @@ import { MissionsService } from '../../services/missions.service';
 import { AuthService } from '../../services/auth.service';
 import { Decision } from '../../models/swipe.model';
 import { UtilisateurService } from '../../services/utilisateurs.service';
-import { Mission } from '../../models/mission.model';
+import { Mission, MissionCategorie, TypeRemuneration } from '../../models/mission.model';
 import { MatchNotificationService } from '../../services/match-notification.service';
 import { MatchNotification } from '../../models/match-notification.model';
 import { Router } from '@angular/router';
+import { MissionSummary } from '../../models/mission-summary.model';
 
 @Component({
   selector: 'app-swipefreelencer',
@@ -23,11 +24,15 @@ import { Router } from '@angular/router';
   styleUrls: ['./swipefreelencer.component.scss']
 })
 export class SwipefreelencerComponent implements OnInit {
+  // Color mode: false => homogeneous, true => semi-differentiated
+  useSemiDiff = false;
   missions: MissionViewModel[] = [];
   isLoading = true;
   animating = false;
   panPosition = { x: 0, y: 0 };
   public currentIndex: number = 0;
+  // Description expansion state
+  public expandedDescriptions: { [missionId: number]: boolean } = {};
   // Pointer drag state
   private dragActive = false;
   private dragStartX = 0;
@@ -44,15 +49,10 @@ export class SwipefreelencerComponent implements OnInit {
   faMapMarkerAlt = faMapMarkerAlt;
   faCheckCircle = faCheckCircle;
   faPlayCircle = faPlayCircle;
-  faBriefcase = faBriefcase;
-  // Ajout de nouvelles icônes pour les panneaux latéraux
-  faInfoCircle = faInfoCircle;
-  faBullseye = faBullseye;
-  faListCheck = faListCheck;
-  faUserTie = faUserTie;
-  faFileSignature = faFileSignature;
   faStar = faStar;
   faCheck = faCheck;
+  faBriefcase = faBriefcase;
+  faChevronDown = faChevronDown;
 
   public get currentMission(): MissionViewModel | undefined {
     if (this.missions && this.missions.length > 0) {
@@ -104,44 +104,75 @@ export class SwipefreelencerComponent implements OnInit {
     const categoryToLoad = this.currentUserCategories[this.currentCategoryIndex];
 
     this.missionsService.getMissionsForSwipe(this.currentUserId, categoryToLoad).pipe(
-      switchMap((missions: Mission[]) => {
+      tap((missions) => console.log('[Swipe] RAW missions from API:', missions)),
+      switchMap((missions: MissionSummary[]) => {
         if (missions.length === 0) {
           return of([]);
         }
         
         const userRequests = missions.map(mission => {
-          const cid = mission.clientId ?? (mission as any).client?.id;
+          const cid = mission.client?.id as number | undefined;
           return cid ? this.utilisateurService.getUtilisateurById(cid).pipe(catchError(() => of(null))) : of(null);
         });
+        const detailsRequests = missions.map(mission => {
+          const skills = (mission as any)?.competencesRequises;
+          return skills && Array.isArray(skills) && skills.length > 0
+            ? of(null)
+            : this.missionsService.getMissionById(mission.id).pipe(catchError(() => of(null)));
+        });
 
-        return forkJoin(userRequests).pipe(
-          map(users => {
+        return forkJoin({ users: forkJoin(userRequests), details: forkJoin(detailsRequests) }).pipe(
+          map(({ users, details }) => {
             return missions.map((mission, index) => {
               const user = users[index];
-              const cid = mission.clientId ?? (mission as any).client?.id;
+              const missionDetails = details[index] as (Mission | null);
+              const cid = mission.client?.id as number | undefined;
+              // Normalize competences: accept array of strings, array of objects, or comma-separated string
+              const rawSkillsSource: any = (mission as any).competencesRequises ?? (missionDetails as any)?.competencesRequises;
+              const rawSkills: any = rawSkillsSource;
+              const competencesRequises: string[] = Array.isArray(rawSkills)
+                ? rawSkills.map((s: any) => typeof s === 'string' ? s : (s?.nom || s?.name || String(s))).filter(Boolean)
+                : typeof rawSkills === 'string'
+                ? rawSkills.split(/[,;|]/).map((s: string) => s.trim()).filter(Boolean)
+                : [];
+
+              // Debug mapping of competences
+              console.log('[Swipe] Mission', mission.id, 'rawSkills=', rawSkills, 'normalized=', competencesRequises);
+              const description = (mission as any).description ?? missionDetails?.description ?? '';
               return {
                 ...mission,
                 id: mission.id,
                 titre: mission.titre,
                 budget: mission.budget,
                 devise: mission.devise,
+                typeRemuneration: (mission as any).typeRemuneration ?? missionDetails?.typeRemuneration,
+                budgetMin: (mission as any).budgetMin ?? missionDetails?.budgetMin ?? undefined,
+                budgetMax: (mission as any).budgetMax ?? missionDetails?.budgetMax ?? undefined,
+                tjmJournalier: (mission as any).tjmJournalier ?? missionDetails?.tjmJournalier ?? undefined,
                 categorie: mission.categorie,
                 statut: mission.statut,
                 modaliteTravail: mission.modaliteTravail,
                 datePublication: mission.datePublication,
-                dureeEstimeeJours: mission.dureeEstimeeJours,
-                description: mission.description,
-                competencesRequises: mission.competencesRequises ?? [],
-                localisation: mission.localisation,
-                mediaUrls: mission.mediaUrls ?? [],
-                videoBriefUrl: mission.videoBriefUrl,
+                dureeEstimeeJours: (mission as any).dureeEstimeeJours ?? (missionDetails as any)?.dureeEstimeeJours,
+                dateLimiteCandidature: (mission as any).dateLimiteCandidature ?? missionDetails?.dateLimiteCandidature,
+                dateDebutSouhaitee: (mission as any).dateDebutSouhaitee ?? missionDetails?.dateDebutSouhaitee,
+                chargeHebdoJours: (mission as any).chargeHebdoJours ?? missionDetails?.chargeHebdoJours,
+                niveauExperienceMin: (mission as any).niveauExperienceMin ?? missionDetails?.niveauExperienceMin,
+                description: typeof description === 'string' ? description : (description != null ? JSON.stringify(description) : ''),
+                competencesRequises,
+                localisation: (mission as any).localisation ?? missionDetails?.localisation,
+                gouvernorat: (mission as any).gouvernorat ?? missionDetails?.gouvernorat,
+                urgent: (mission as any).urgent ?? missionDetails?.urgent,
+                qualiteBrief: (mission as any).qualiteBrief ?? missionDetails?.qualiteBrief,
+                mediaUrls: (mission as any).mediaUrls ?? missionDetails?.mediaUrls ?? [],
+                videoBriefUrl: (mission as any).videoBriefUrl ?? missionDetails?.videoBriefUrl,
                 clientId: cid,
-                clientNom: user ? `${user.prenom} ${user.nom}` : 'Client Anonyme',
-                clientAvatarUrl: user?.photoProfilUrl,
+                clientNom: user ? `${user.prenom} ${user.nom}` : (mission.client ? `${mission.client.prenom} ${mission.client.nom}` : 'Client Anonyme'),
+                clientAvatarUrl: user?.photoProfilUrl || mission.client?.photoUrl,
                 clientEstVerifie: user?.estActif,
                 clientMissionsPostees: user?.missionsPubliees,
-                scoreCompatibilite: mission.scoreMatching,
-                resume: mission.description ? mission.description.substring(0, 100) + '...' : '',
+                scoreCompatibilite: undefined,
+                resume: (mission as any).description ? (mission as any).description.substring(0, 100) + '...' : '',
               } as MissionViewModel;
             });
           })
@@ -156,6 +187,9 @@ export class SwipefreelencerComponent implements OnInit {
       console.log('--- DEBUG: Contenu des cartes après chargement ---', viewModels);
       this.missions = viewModels.reverse();
       this.currentIndex = this.missions.length - 1;
+      console.log('[Swipe] currentMission skills =', this.currentMission?.competencesRequises);
+      console.log('[Swipe] currentMission description =', this.currentMission?.description);
+      console.log('[Swipe] currentMission description length =', this.currentMission?.description?.length);
       if (this.missions.length === 0) {
         this.loadNextCategory();
       }
@@ -346,5 +380,29 @@ export class SwipefreelencerComponent implements OnInit {
       this.router.navigate(['/freelencer/chat'], { queryParams: { convId: this.matchPopup.conversationId } });
       this.matchPopup = undefined;
     }
+  }
+
+  toggleDescription(missionId: number): void {
+    console.log('Toggle description for missionId:', missionId);
+    const mission = this.missions.find(m => m.id === missionId);
+    console.log('Mission description:', mission?.description);
+    this.expandedDescriptions[missionId] = !this.expandedDescriptions[missionId];
+    console.log('New state:', this.expandedDescriptions[missionId]);
+  }
+
+  /**
+   * Returns the best available mission text to show in description:
+   * 1) description (trimmed) if present
+   * 2) resume/summary fallback
+   * 3) empty string when none
+   */
+  safeMissionText(mission: MissionViewModel | undefined): string {
+    if (!mission) { return ''; }
+    const description = (mission as any)?.description ? String((mission as any).description) : '';
+    const descTrimmed = description.trim();
+    if (descTrimmed.length > 0) { return descTrimmed; }
+    const resume = (mission as any)?.resume ? String((mission as any).resume) : '';
+    const resumeTrimmed = resume.trim();
+    return resumeTrimmed;
   }
 }

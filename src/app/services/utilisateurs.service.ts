@@ -8,9 +8,15 @@ import {
   TypeUtilisateur,
   Disponibilite,
   NiveauExperience,
-  Langue
+  Langue,
+  Mobilite,
+  EngagementModel,
+  StatutKyc,
+  PreferenceDuree,
+  TypeClient
 } from '../models/utilisateur.model';
-import { MissionCategorie } from '../models/mission.model';
+import { MissionCategorie, Gouvernorat } from '../models/mission.model';
+import { FreelanceSummary } from '../models/freelance-summary.model';
 
 @Injectable({
   providedIn: 'root'
@@ -31,6 +37,7 @@ export class UtilisateurService {
    * Récupère la liste des utilisateurs avec filtres optionnels
    */
   getUtilisateurs(filters?: {
+    // Filtres de base
     type?: TypeUtilisateur;
     localisation?: string;
     competences?: string;
@@ -42,6 +49,28 @@ export class UtilisateurService {
     niveau?: NiveauExperience;
     langue?: Langue;
     categories?: MissionCategorie[];
+    
+    // Filtres de réputation existants
+    noteMin?: number;
+    projetsTerminesMin?: number;
+    
+    // Nouveaux filtres étendus
+    gouvernorat?: Gouvernorat;
+    mobilite?: Mobilite;
+    timezone?: string;
+    preferenceDuree?: PreferenceDuree;
+    typeClient?: TypeClient;
+    estActif?: boolean;
+    
+    // Vérifications / KYC
+    emailVerifie?: boolean;
+    telephoneVerifie?: boolean;
+    identiteVerifiee?: boolean;
+    ribVerifie?: boolean;
+    kycStatut?: StatutKyc;
+    
+    // Réputation
+    nombreAvisMin?: number;
   }): Observable<Utilisateur[]> {
     let params = new HttpParams();
     if (filters) {
@@ -87,5 +116,159 @@ export class UtilisateurService {
   deleteUtilisateur(id: number): Observable<void> {
     const url = `${this.api}/${id}`;
     return this.http.delete<void>(url, { withCredentials: true });
+  }
+
+  /**
+   * Met à jour partiellement le profil d'un freelance
+   */
+  patchProfil(id: number, profilData: {
+    bio?: string;
+    localisation?: string;
+    competences?: string[];
+    tarifHoraire?: number;
+    tarifJournalier?: number;
+    categories?: MissionCategorie[];
+    photoProfilUrl?: string;
+  }): Observable<Utilisateur> {
+    const url = `${this.api}/${id}/profil`;
+    return this.http.patch<Utilisateur>(url, profilData, { withCredentials: true });
+  }
+
+  /**
+   * Active ou désactive un utilisateur
+   */
+  setActivation(id: number, actif: boolean): Observable<void> {
+    const url = `${this.api}/${id}/activation`;
+    return this.http.post<void>(url, null, { 
+      params: { actif: actif.toString() }, 
+      withCredentials: true 
+    });
+  }
+
+  /**
+   * Ajoute un token push pour les notifications
+   */
+  addPushToken(id: number, token: string): Observable<void> {
+    const url = `${this.api}/${id}/push-tokens`;
+    return this.http.post<void>(url, null, { 
+      params: { token }, 
+      withCredentials: true 
+    });
+  }
+
+  /**
+   * Supprime un token push
+   */
+  removePushToken(id: number, token: string): Observable<void> {
+    const url = `${this.api}/${id}/push-tokens`;
+    return this.http.delete<void>(url, { 
+      params: { token }, 
+      withCredentials: true 
+    });
+  }
+
+  /**
+   * Incrémente le compteur de swipes
+   */
+  incrementSwipe(id: number): Observable<void> {
+    const url = `${this.api}/${id}/counters/swipe`;
+    return this.http.post<void>(url, null, { withCredentials: true });
+  }
+
+  /**
+   * Incrémente le compteur de likes reçus
+   */
+  incrementLike(id: number): Observable<void> {
+    const url = `${this.api}/${id}/counters/like`;
+    return this.http.post<void>(url, null, { withCredentials: true });
+  }
+
+  /**
+   * Incrémente le compteur de matches
+   */
+  incrementMatch(id: number): Observable<void> {
+    const url = `${this.api}/${id}/counters/match`;
+    return this.http.post<void>(url, null, { withCredentials: true });
+  }
+
+  /**
+   * Récupère les métadonnées des enums
+   */
+  getEnums(): Observable<{
+    types: TypeUtilisateur[];
+    disponibilites: Disponibilite[];
+    niveauxExperience: NiveauExperience[];
+    langues: Langue[];
+    categoriesMission: MissionCategorie[];
+    gouvernorats: Gouvernorat[];
+    mobilites: Mobilite[];
+    preferencesDuree: PreferenceDuree[];
+    typesClient: TypeClient[];
+    statutsKyc: StatutKyc[];
+  }> {
+    const url = `${this.api}/enums`;
+    return this.http.get<any>(url, { withCredentials: true });
+  }
+
+  /**
+   * Vérifie l'email d'un utilisateur
+   */
+  verifyEmail(id: number): Observable<void> {
+    const url = `${this.api}/${id}/verify/email`;
+    return this.http.post<void>(url, null, { withCredentials: true });
+  }
+
+  /**
+   * Vérifie le téléphone d'un utilisateur
+   */
+  verifyPhone(id: number): Observable<void> {
+    const url = `${this.api}/${id}/verify/phone`;
+    return this.http.post<void>(url, null, { withCredentials: true });
+  }
+
+  /**
+   * Définit le statut KYC d'un utilisateur
+   */
+  setKycStatus(id: number, statut: StatutKyc): Observable<void> {
+    const url = `${this.api}/${id}/kyc`;
+    return this.http.post<void>(url, null, { 
+      params: { statut }, 
+      withCredentials: true 
+    });
+  }
+
+  /**
+   * Consomme un super-like
+   */
+  consumeSuperLike(id: number): Observable<void> {
+    const url = `${this.api}/${id}/superlikes/consume`;
+    return this.http.post<void>(url, null, { withCredentials: true });
+  }
+
+  /**
+   * Définit le nombre de super-likes quotidiens
+   */
+  setDailySuperlikes(id: number, count: number): Observable<void> {
+    const url = `${this.api}/${id}/superlikes/set`;
+    return this.http.post<void>(url, null, { 
+      params: { count: count.toString() }, 
+      withCredentials: true 
+    });
+  }
+
+  /**
+   * Récupère la liste des freelances en format résumé
+   */
+  getFreelanceSummaries(): Observable<FreelanceSummary[]> {
+    const url = `${this.api}/freelances/summary`;
+    return this.http.get<FreelanceSummary[]>(url, { withCredentials: true });
+  }
+
+  /**
+   * Récupère le résumé d'un freelance par ID
+   */
+  getFreelanceSummary(id: number): Observable<FreelanceSummary> {
+    const url = `${this.api}/${id}/summary`;
+    return this.http.get<FreelanceSummary>(url, { withCredentials: true });
   }
 }

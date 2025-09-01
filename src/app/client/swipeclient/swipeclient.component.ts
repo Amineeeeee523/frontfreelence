@@ -3,41 +3,46 @@ import { CommonModule } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faHeart, faTimes, faSync, faStar, faMapPin,
-  faCheckCircle, faUserTie, faLevelUpAlt, faDollarSign, faHandshake, faChevronDown, faBriefcase, faCheck
+  faCheckCircle, faUserTie, faLevelUpAlt, faDollarSign, faHandshake, faChevronDown, faBriefcase, faCheck,
+  faEuroSign, faClock, faCalendarDay, faFire
 } from '@fortawesome/free-solid-svg-icons';
 import { catchError, finalize, switchMap, take } from 'rxjs/operators';
 import { EMPTY, of } from 'rxjs';
 
 import { UtilisateurSummaryModel } from '../../models/utilisateur-summary.model';
+import { FreelanceSummary } from '../../models/freelance-summary.model';
 import { SwipeService } from '../../services/swipe.service';
 import { AuthService } from '../../services/auth.service';
 import { Decision } from '../../models/swipe.model';
-import { Mission } from '../../models/mission.model';
+import { MissionCard } from '../../models/mission-card.model';
 import { MissionsService } from '../../services/missions.service';
 import { MatchNotificationService } from '../../services/match-notification.service';
 import { MatchNotification } from '../../models/match-notification.model';
 import { Router } from '@angular/router';
+import { SwipeClientFreelanceComponent } from './swipe-client-freelance.component';
+import { MissionSelectorService } from '../../core/mission-selector.service';
 
-export interface FreelancerViewModel extends UtilisateurSummaryModel {
+export interface FreelancerViewModel extends FreelanceSummary {
   decision?: 'like' | 'dislike';
 }
 
 @Component({
   selector: 'app-swipeclient',
   standalone: true,
-  imports: [CommonModule, FontAwesomeModule],
+  imports: [CommonModule, FontAwesomeModule, SwipeClientFreelanceComponent],
   templateUrl: './swipeclient.component.html',
   styleUrls: ['./swipeclient.component.scss']
 })
 export class SwipeclientComponent implements OnInit {
   // --- États principaux ---
-  clientMissions: Mission[] = [];
-  selectedMission: Mission | null = null;
+  clientMissions: MissionCard[] = [];
+  selectedMission: MissionCard | null = null;
   freelancers: FreelancerViewModel[] = [];
 
   isLoadingMissions = true;
   isLoadingFreelancers = false;
-  isMissionSelectorOpen = false;
+  showMissionModal = false;
+  showMissionDropdown = false;
 
   // --- Animation / Drag State ---
   animating = false;
@@ -48,6 +53,9 @@ export class SwipeclientComponent implements OnInit {
   private dragStartY = 0;
   private activeCardEl: HTMLElement | null = null;
   public clientId!: number;
+
+  // Description expansion state (clone behavior)
+  public expandedDescriptions: { [freelancerId: number]: boolean } = {};
 
   // --- Icones FontAwesome ---
   faHeart = faHeart;
@@ -62,6 +70,10 @@ export class SwipeclientComponent implements OnInit {
   faChevronDown = faChevronDown;
   faBriefcase = faBriefcase;
   faCheck = faCheck;
+  faEuroSign = faEuroSign;
+  faClock = faClock;
+  faCalendarDay = faCalendarDay;
+  faFire = faFire;
 
   get currentFreelancer(): FreelancerViewModel | undefined {
     return this.freelancers.length > 0 ? this.freelancers[this.freelancers.length - 1] : undefined;
@@ -72,7 +84,8 @@ export class SwipeclientComponent implements OnInit {
     private missionsService: MissionsService,
     private authService: AuthService,
     private matchService: MatchNotificationService,
-    private router: Router
+    private router: Router,
+    private missionSelector: MissionSelectorService
   ) {}
 
   // -------------------- INIT --------------------
@@ -81,6 +94,7 @@ export class SwipeclientComponent implements OnInit {
     this.matchService.connect();
     this.matchService.match$.subscribe((notif) => this.onMatch(notif));
 
+    // Charger les missions et ouvrir le modal automatiquement
     this.authService.user$.pipe(
       take(1),
       switchMap(user => {
@@ -95,20 +109,45 @@ export class SwipeclientComponent implements OnInit {
         console.error('Erreur lors du chargement des missions du client', err);
         return EMPTY;
       })
-    ).subscribe(missions => {
+    ).subscribe((missions: MissionCard[]) => {
       this.clientMissions = missions;
-      // On pourrait présélectionner la première mission ici si souhaité
+      // Sélectionner automatiquement la première mission si disponible
+      if (!this.selectedMission && missions.length > 0) {
+        this.selectMission(missions[0]);
+      }
     });
   }
 
-  // -------------------- Missions --------------------
-  toggleMissionSelector(): void {
-    this.isMissionSelectorOpen = !this.isMissionSelectorOpen;
+  toggleDescription(freelancerId: number): void {
+    this.expandedDescriptions[freelancerId] = !this.expandedDescriptions[freelancerId];
   }
 
-  selectMission(mission: Mission): void {
+  safeFreelancerText(f: FreelancerViewModel | undefined): string {
+    if (!f) return '';
+    const t1 = (f as any).bio ? String((f as any).bio) : '';
+    const t2 = f.titreProfil ? String(f.titreProfil) : '';
+    const t3 = f.localisation ? `Basé à ${f.localisation}` : '';
+    const text = t1 || t2 || t3;
+    return text.trim();
+  }
+
+  isFreelancerVerified(f: FreelancerViewModel): boolean {
+    return true;
+  }
+
+  getTarifLabelValue(f: FreelancerViewModel): { label: string; value: string } | null {
+    if (typeof f.tarifJournalier === 'number') return { label: 'TJM', value: `${f.tarifJournalier}€` };
+    if (typeof f.tarifHoraire === 'number') return { label: 'Taux horaire', value: `${f.tarifHoraire}€` };
+    return null;
+  }
+
+  // -------------------- Missions --------------------
+  openMissionModal(): void { this.showMissionModal = true; }
+  closeMissionModal(): void { this.showMissionModal = false; }
+
+  selectMission(mission: MissionCard): void {
     this.selectedMission = mission;
-    this.isMissionSelectorOpen = false;
+    this.closeMissionModal();
     this.freelancers = [];
     this.loadFreelancers(mission.id);
   }
@@ -124,7 +163,6 @@ export class SwipeclientComponent implements OnInit {
         return EMPTY;
       })
     ).subscribe(freelancers => {
-      // On renverse pour avoir la première carte en haut de pile
       this.freelancers = freelancers.reverse();
       this.currentIndex = this.freelancers.length - 1;
     });
@@ -141,13 +179,8 @@ export class SwipeclientComponent implements OnInit {
   }
 
   // -------------------- Swipe Buttons --------------------
-  onLike(): void {
-    this.swipe(Decision.LIKE);
-  }
-
-  onDislike(): void {
-    this.swipe(Decision.DISLIKE);
-  }
+  onLike(): void { this.swipe(Decision.LIKE); }
+  onDislike(): void { this.swipe(Decision.DISLIKE); }
 
   private swipe(decision: Decision): void {
     if (!this.currentFreelancer || this.animating || !this.selectedMission) return;
@@ -164,12 +197,11 @@ export class SwipeclientComponent implements OnInit {
     ).pipe(catchError(() => of(null)))
      .subscribe();
 
-    // Augmenter le délai pour laisser l'animation se terminer complètement
     setTimeout(() => {
       this.freelancers.pop();
       this.currentIndex = this.freelancers.length - 1;
       this.animating = false;
-    }, 800); // Augmenté de 500ms à 800ms pour une animation plus fluide
+    }, 800);
   }
 
   // -------------------- Gesture Management --------------------
@@ -235,9 +267,7 @@ export class SwipeclientComponent implements OnInit {
   /* ---------------- MATCH ---------------- */
   matchPopup?: MatchNotification;
 
-  private onMatch(notif: MatchNotification): void {
-    this.matchPopup = notif;
-  }
+  private onMatch(notif: MatchNotification): void { this.matchPopup = notif; }
 
   goToChat(): void {
     if (this.matchPopup) {

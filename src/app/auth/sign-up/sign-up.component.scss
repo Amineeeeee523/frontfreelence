@@ -2,31 +2,31 @@
 
 :host {
   // --- Design System "Promatch" ---
-  --bg-color: #F7F8FC;
-  --card-bg: #ffffff;
-  --border-color: #E5E7EB;
-  --primary-color: #FF4D6A; // Rose-rouge vibrant
-  --primary-gradient: linear-gradient(135deg, #FF2D55, #FF9500); // Orange-rose
-  --text-dark: #1F2937;
-  --text-normal: #374151;
-  --text-muted: #6B7280;
-  --input-bg: #F9FAFB;
+  --bg-color: #FDFBFF;
+  --card-bg: #FFFFFF;
+  --border-color: rgba(15, 23, 42, 0.05);
+  --primary-color: #D946EF; // Magenta premium
+  --primary-gradient: linear-gradient(90deg, #D946EF, #22D3EE); // Magenta → Cyan
+  --text-dark: #0F172A;
+  --text-normal: #475569;
+  --text-muted: #94A3B8;
+  --input-bg: #F8FAFC;
   --input-text: var(--text-dark);
   --input-border-focus: var(--primary-color);
   --button-text: #ffffff;
   --error-color: #EF4444;
   --success-color: #10B981;
-  --soft-shadow: 0 8px 16px rgba(0,0,0,0.05);
+  --soft-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
   --font-family: 'Inter', sans-serif;
   
-  // Nouvelles variables pour les effets ultra modernes avec touches de mauve
-  --glass-bg: rgba(255, 255, 255, 0.1);
-  --glass-border: rgba(255, 255, 255, 0.2);
-  --neon-glow: 0 0 20px rgba(255, 77, 106, 0.3);
-  --input-focus-glow: 0 0 0 3px rgba(255, 77, 106, 0.2);
-  --button-hover-glow: 0 0 30px rgba(255, 45, 85, 0.4);
-  --mauve-accent: #8B5CF6; // Touche de mauve doux
-  --orange-accent: #FF9500; // Plus d'orange
+  // Variables pour les effets ultra modernes (mauve/cyan)
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(15, 23, 42, 0.05);
+  --neon-glow: 0 6px 18px rgba(217, 70, 239, 0.12);
+  --input-focus-glow: 0 0 0 3px rgba(217, 70, 239, 0.1);
+  --button-hover-glow: 0 0 30px rgba(217, 70, 239, 0.2);
+  --mauve-accent: #A77AFB; // Lilas
+  --cyan-accent: #22D3EE; // Cyan
 }
 
 .signup-container {
@@ -35,7 +35,7 @@
   justify-content: center;
   min-height: 100svh;
   width: 100%;
-  background: linear-gradient(135deg, #F7F8FC 0%, #FFF5F0 50%, #F8F4FF 100%);
+  background: linear-gradient(180deg, #FDFBFF 0%, #F7F5FF 100%);
   padding: 2rem 1rem;
   font-family: var(--font-family);
   position: relative;
@@ -54,7 +54,7 @@
   &::before {
     width: 450px;
     height: 450px;
-    background: linear-gradient(135deg, var(--orange-accent), var(--mauve-accent));
+    background: linear-gradient(135deg, var(--cyan-accent), var(--mauve-accent));
     top: -200px;
     left: -200px;
     animation-delay: 0s;
@@ -63,7 +63,7 @@
   &::after {
     width: 400px;
     height: 400px;
-    background: linear-gradient(135deg, var(--mauve-accent), var(--orange-accent));
+    background: linear-gradient(135deg, var(--mauve-accent), var(--cyan-accent));
     bottom: -200px;
     right: -200px;
     animation-delay: 3s;
@@ -75,7 +75,7 @@
     position: absolute;
     width: 300px;
     height: 300px;
-    background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(139, 92, 246, 0.1));
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(139, 92, 246, 0.1));
     border-radius: 50%;
     filter: blur(80px);
     top: 50%;
@@ -134,7 +134,7 @@
     bottom: 0;
     border-radius: 24px;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(255, 149, 0, 0.3), rgba(139, 92, 246, 0.3));
+    background: linear-gradient(135deg, rgba(34, 211, 238, 0.3), rgba(139, 92, 246, 0.3));
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: exclude;
     pointer-events: none;
@@ -199,7 +199,7 @@
       left: 0;
       right: 0;
       height: 2px;
-      background: linear-gradient(90deg, var(--orange-accent), var(--mauve-accent));
+      background: linear-gradient(90deg, var(--cyan-accent), var(--mauve-accent));
       border-radius: 1px;
       opacity: 0.3;
       z-index: -1;
@@ -255,12 +255,12 @@
         }
 
         &.active {
-            color: var(--orange-accent);
+            color: var(--primary-color);
             transform: scale(1.05);
             
             .step-icon {
-                border-color: var(--orange-accent);
-                box-shadow: 0 0 20px rgba(255, 149, 0, 0.3);
+                border-color: var(--primary-color);
+                box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
                 
                 &::before {
                   opacity: 1;
@@ -268,22 +268,22 @@
                 }
                 
                 svg { 
-                  color: var(--orange-accent);
+                  color: var(--primary-color);
                   transform: scale(1.1);
                 }
             }
             
             span {
-              color: var(--orange-accent);
+              color: var(--primary-color);
               font-weight: 600;
             }
         }
         
         &.completed {
             .step-icon {
-                background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
-                border-color: var(--orange-accent);
-                box-shadow: 0 0 25px rgba(255, 149, 0, 0.4);
+                background: var(--primary-gradient);
+                border-color: var(--primary-color);
+                box-shadow: 0 0 25px rgba(34, 211, 238, 0.35);
                 
                 svg { 
                   color: white;
@@ -310,7 +310,7 @@
             left: 0;
             height: 100%;
             width: 0;
-            background: linear-gradient(90deg, var(--orange-accent), #FF6B35);
+            background: linear-gradient(90deg, var(--cyan-accent), var(--mauve-accent));
             transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             border-radius: 1px;
         }
@@ -346,6 +346,10 @@
 .form-step {
   animation: slideIn 0.5s cubic-bezier(0.25, 1, 0.5, 1);
   position: relative;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 @keyframes slideIn {
@@ -367,7 +371,7 @@
   .title {
     font-size: 1.8rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
+    background: var(--primary-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -383,7 +387,7 @@
       left: 50%;
       width: 0;
       height: 3px;
-      background: linear-gradient(90deg, var(--orange-accent), #FF6B35);
+      background: linear-gradient(90deg, var(--primary-gradient));
       transform: translateX(-50%);
       border-radius: 2px;
       animation: expandWidth 1.5s ease-out 0.5s forwards;
@@ -395,6 +399,21 @@
     color: var(--text-muted);
     margin-top: 0.5rem;
     animation: fadeInUp 0.8s ease-out 0.7s backwards;
+  }
+}
+
+// Styles pour les étapes avec moins de contenu
+.form-step {
+  &:has(.form-grid:only-child) {
+    justify-content: flex-start;
+    padding-top: 2rem;
+  }
+  
+  // Animation spéciale pour les étapes de base
+  &:has(.step-header .title:contains("Informations de base")) {
+    .step-header {
+      margin-bottom: 3rem;
+    }
   }
 }
 
@@ -448,7 +467,7 @@
   .icon { 
       font-size: 2rem; 
       margin-bottom: 1rem;
-      color: var(--orange-accent);
+      color: var(--cyan-accent);
       transition: all 0.3s ease;
   }
   
@@ -457,9 +476,9 @@
 
   &:hover {
     transform: translateY(-5px) scale(1.02);
-    border-color: var(--orange-accent);
+    border-color: var(--primary-color);
     background: white;
-    box-shadow: 0 10px 30px rgba(255, 149, 0, 0.2);
+    box-shadow: 0 10px 30px rgba(217, 70, 239, 0.2);
     
     &::before {
       left: 100%;
@@ -471,9 +490,9 @@
   }
 
   &.selected {
-    border-color: var(--orange-accent);
+    border-color: var(--primary-color);
     background-color: white;
-    box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.3), 0 10px 30px rgba(255, 149, 0, 0.2);
+    box-shadow: 0 0 0 3px rgba(217, 70, 239, 0.3), 0 10px 30px rgba(217, 70, 239, 0.2);
     transform: translateY(-2px);
     
     .icon {
@@ -517,7 +536,7 @@
           right: -3px;
           bottom: -3px;
           border-radius: 50%;
-          background: linear-gradient(45deg, var(--orange-accent), var(--mauve-accent), var(--orange-accent));
+          background: linear-gradient(45deg, var(--cyan-accent), var(--mauve-accent), var(--cyan-accent));
           background-size: 200% 200%;
           animation: borderRotate 3s linear infinite;
           opacity: 0;
@@ -547,7 +566,7 @@
     
     .upload-button {
         font-weight: 500;
-        color: var(--orange-accent);
+        color: var(--cyan-accent);
         cursor: pointer;
         transition: all 0.3s ease;
         position: relative;
@@ -561,21 +580,21 @@
           left: 0;
           right: 0;
           bottom: 0;
-          background: linear-gradient(135deg, rgba(255, 149, 0, 0.1), rgba(139, 92, 246, 0.1));
-          border-radius: 8px;
-          transform: scaleX(0);
-          transform-origin: left;
-          transition: transform 0.3s ease;
-        }
-        
-        &:hover { 
-            color: #FF6B35;
-            transform: translateY(-1px);
-            
-            &::before {
-              transform: scaleX(1);
-            }
-        }
+                  background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(139, 92, 246, 0.1));
+        border-radius: 8px;
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+      }
+      
+      &:hover { 
+          color: var(--primary-color);
+          transform: translateY(-1px);
+          
+          &::before {
+            transform: scaleX(1);
+          }
+      }
     }
     
     input[type="file"] {
@@ -592,14 +611,40 @@
 .input-group {
   margin-bottom: 1.2rem;
   position: relative;
+  
+  // Espacement spécial pour la première étape
+  .form-step:has(.step-header .title:contains("Informations de base")) & {
+    margin-bottom: 1.5rem;
+  }
 }
 
 .input-label {
     display: block;
-    font-weight: 500;
-    color: var(--text-normal);
+    font-weight: 600;
+    color: var(--text-dark);
     margin-bottom: 0.5rem;
-    transition: color 0.3s ease;
+    transition: all 0.3s ease;
+    font-size: 0.95rem;
+    position: relative;
+    
+    // Indicateur de champ requis
+    &::after {
+      content: ' *';
+      color: var(--error-color);
+      font-weight: bold;
+    }
+    
+    // Pour les champs optionnels
+    &.optional::after {
+      content: ' (optionnel)';
+      color: var(--text-muted);
+      font-weight: normal;
+      font-size: 0.85rem;
+    }
+    
+    &:hover {
+      color: var(--primary-color);
+    }
 }
 
 .input-field {
@@ -620,18 +665,37 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 149, 0, 0.1), transparent);
+    background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.1), transparent);
     transition: left 0.6s ease;
   }
 
   &:focus-within {
-    border-color: var(--orange-accent);
-    box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.2), 0 8px 25px rgba(255, 149, 0, 0.1);
+    border-color: var(--primary-color);
+    box-shadow: var(--input-focus-glow), 0 8px 25px rgba(217, 70, 239, 0.1);
     transform: translateY(-1px);
     
     &::before {
       left: 100%;
     }
+    
+    .input-icon {
+      color: var(--primary-color);
+      transform: scale(1.1);
+    }
+  }
+  
+  // Animation d'entrée pour les nouveaux champs
+  animation: slideInUp 0.5s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -642,12 +706,28 @@
   align-items: center;
   justify-content: center;
   font-size: 1.2rem;
+  font-weight: 600;
   transition: all 0.3s ease;
-  svg { width: 20px; height: 20px; }
+  min-width: 3rem;
+  text-align: center;
+  
+  svg { 
+    width: 20px; 
+    height: 20px; 
+  }
+  
+  // Style spécial pour les symboles de devise
+  &:not(:has(svg)) {
+    color: var(--cyan-accent);
+    font-weight: 700;
+    font-size: 1rem;
+  }
+  &.brand.linkedin { color: #0A66C2; }
+  &.brand.github { color: #181717; }
 }
 
 .input-field:focus-within .input-icon {
-  color: var(--orange-accent);
+  color: var(--primary-color);
   transform: scale(1.1);
 }
 
@@ -666,9 +746,29 @@ input, select, textarea {
   &:focus { 
     outline: none; 
     &::placeholder {
-        color: var(--orange-accent);
+        color: var(--primary-color);
         transform: translateX(5px);
     }
+  }
+  
+  &::placeholder {
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+  }
+  
+  // Style pour les champs numériques
+  &[type="number"] {
+    -moz-appearance: textfield;
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+  
+  // Style pour les champs téléphone
+  &[type="tel"] {
+    letter-spacing: 0.5px;
   }
 }
 
@@ -681,6 +781,21 @@ select {
   background-position: right 0.7rem center;
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
+  cursor: pointer;
+  
+  &:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2322D3EE' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  }
+  
+  option {
+    padding: 0.5rem;
+    background: white;
+    color: var(--text-dark);
+    
+    &:hover {
+      background: rgba(34, 211, 238, 0.08);
+    }
+  }
 }
 
 textarea {
@@ -699,6 +814,34 @@ textarea {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
+    margin-top: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: rgba(34, 211, 238, 0.02);
+    border: 1px dashed rgba(34, 211, 238, 0.2);
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: rgba(34, 211, 238, 0.05);
+      border-color: rgba(34, 211, 238, 0.3);
+    }
+    
+    // Animation pour les nouveaux chips
+    .recap-chip {
+      animation: chipAppear 0.4s ease-out;
+    }
+}
+
+@keyframes chipAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .chip {
@@ -713,6 +856,9 @@ textarea {
     font-weight: 500;
     position: relative;
     overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 
     // Effet de brillance
     &::before {
@@ -729,9 +875,10 @@ textarea {
     input[type="checkbox"] { display: none; }
 
     &:hover {
-        border-color: var(--orange-accent);
-        color: var(--orange-accent);
-        transform: translateY(-1px) scale(1.05);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        transform: translateY(-2px) scale(1.05);
+        box-shadow: 0 6px 20px rgba(34, 211, 238, 0.2);
         
         &::before {
           left: 100%;
@@ -739,12 +886,18 @@ textarea {
     }
     
     &.selected {
-        background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
-        border-color: var(--orange-accent);
+        background: var(--primary-gradient);
+        border-color: var(--primary-color);
         color: white;
-        box-shadow: 0 4px 15px rgba(255, 149, 0, 0.3);
+        box-shadow: 0 4px 15px rgba(34, 211, 238, 0.3);
         transform: scale(1.05);
         animation: chipSelect 0.3s ease-out;
+        
+        &::after {
+          content: '✓';
+          font-weight: bold;
+          margin-left: 0.25rem;
+        }
     }
 }
 
@@ -811,7 +964,7 @@ textarea {
       bottom: 0;
       border-radius: 16px;
       padding: 1px;
-      background: linear-gradient(135deg, rgba(255, 149, 0, 0.2), rgba(139, 92, 246, 0.2));
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.2), rgba(139, 92, 246, 0.2));
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask-composite: exclude;
       opacity: 0;
@@ -844,7 +997,7 @@ textarea {
         display: flex;
         align-items: center;
         justify-content: center;
-        color: var(--orange-accent);
+        color: var(--primary-color);
         transition: all 0.3s ease;
         svg {
             width: 20px;
@@ -880,7 +1033,7 @@ textarea {
     }
     
     &:hover {
-        background: rgba(255, 149, 0, 0.05);
+        background: rgba(34, 211, 238, 0.05);
         margin: 0 -0.5rem;
         padding: 0.75rem 0.5rem;
         border-radius: 8px;
@@ -907,7 +1060,7 @@ textarea {
         transition: all 0.3s ease;
         
         &:hover {
-            background: rgba(255, 149, 0, 0.05);
+            background: rgba(34, 211, 238, 0.05);
         }
     }
 }
@@ -920,17 +1073,43 @@ textarea {
 }
 
 .recap-chip {
-    background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
+    background: var(--primary-gradient);
     color: white;
     padding: 0.3rem 0.8rem;
     border-radius: 15px;
     font-size: 0.8rem;
     font-weight: 500;
     transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     
-    &:hover {
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
+            &:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(217, 70, 239, 0.3);
+        }
+    
+    // Style pour le bouton de suppression
+    button {
+        background: transparent;
+        border: none;
+        color: white;
+        cursor: pointer;
+        font-size: 1.2rem;
+        font-weight: bold;
+        padding: 0;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+        
+        &:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.2);
+        }
     }
 }
 
@@ -943,6 +1122,71 @@ textarea {
   color: var(--error-color);
   font-weight: 500;
   animation: shake 0.5s ease-in-out;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+// Styles pour les messages de validation des champs
+.input-group {
+  &.ng-invalid.ng-touched {
+    .input-field {
+      border-color: var(--error-color);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+  
+  &.ng-valid.ng-touched {
+    .input-field {
+      border-color: var(--success-color);
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+  }
+}
+
+// Animation pour les champs valides
+@keyframes validPulse {
+  0% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+  50% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3); }
+  100% { box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); }
+}
+
+.input-group.ng-valid.ng-touched .input-field {
+  animation: validPulse 0.6s ease-in-out;
+}
+
+// Animation pour les champs invalides
+@keyframes invalidShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.input-group.ng-invalid.ng-touched .input-field {
+  animation: invalidShake 0.5s ease-in-out;
+}
+
+// Amélioration de l'apparence des champs de saisie
+.input-field {
+  &:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(217, 70, 239, 0.12);
+  }
+  
+  // Animation d'entrée pour les nouveaux champs
+  animation: slideInUp 0.5s ease-out;
+  
+  // Effet de focus amélioré
+  &:focus-within {
+    .input-icon {
+      animation: iconPulse 0.6s ease-in-out;
+    }
+  }
+}
+
+@keyframes iconPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1.1); }
 }
 
 @keyframes shake {
@@ -955,6 +1199,8 @@ textarea {
   display: flex;
   justify-content: space-between;
   margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
   
   button {
     width: 48%;
@@ -989,16 +1235,38 @@ textarea {
       cursor: not-allowed;
     }
   }
+  
+  // Style spécial pour la première étape
+  .form-step:has(.step-header .title:contains("Informations de base")) & {
+    margin-top: 3rem;
+  }
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, var(--orange-accent), #FF6B35);
+  background: var(--primary-gradient);
   color: var(--button-text);
-  box-shadow: 0 4px 15px rgba(255, 149, 0, 0.25);
+  box-shadow: 0 4px 15px rgba(217, 70, 239, 0.25);
+  position: relative;
+  overflow: hidden;
 
   &:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 149, 0, 0.35);
+    box-shadow: 0 6px 20px rgba(34, 211, 238, 0.35);
+    
+    &::before {
+      left: 100%;
+    }
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(217, 70, 239, 0.2);
+  }
+  
+  &:disabled {
+    background: linear-gradient(135deg, #ccc, #999);
+    box-shadow: none;
+    cursor: not-allowed;
   }
 }
 
@@ -1006,10 +1274,24 @@ textarea {
   background-color: white;
   color: var(--text-normal);
   border: 1px solid #D1D5DB;
-   &:hover:not(:disabled) { 
-       background-color: #F9FAFB;
-       border-color: var(--text-normal);
+  position: relative;
+  overflow: hidden;
+  
+  &:hover:not(:disabled) { 
+    background-color: #F9FAFB;
+    border-color: var(--text-normal);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    
+    &::before {
+      left: 100%;
     }
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .auth-link {
@@ -1017,7 +1299,7 @@ textarea {
   margin-top: 1.5rem;
   color: var(--text-muted);
   a {
-    color: var(--orange-accent);
+    color: var(--primary-color);
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
@@ -1030,12 +1312,12 @@ textarea {
       left: 0;
       width: 0;
       height: 2px;
-      background: linear-gradient(90deg, var(--orange-accent), #FF6B35);
+      background: var(--primary-gradient);
       transition: width 0.3s ease;
     }
     
     &:hover { 
-        color: #FF6B35;
+        color: var(--primary-color);
         transform: translateX(3px);
         
         &::after {
@@ -1053,4 +1335,3 @@ textarea {
       grid-template-columns: 1fr;
   }
 }
-

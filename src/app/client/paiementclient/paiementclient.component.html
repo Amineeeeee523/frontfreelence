@@ -1,10 +1,11 @@
 <!--
-  ULTRA MODERNE PAIEMENT CLIENT - VERSION 4.0
-  Design épuré et chic inspiré de Stripe et Apple
+  INTERFACE DE PAIEMENT CLIENT - VERSION PREMIUM 5.0
+  Design ultra moderne avec hiérarchie visuelle optimisée
+  Charte cyan → mauve cohérente
 -->
 <div class="paiement-container">
 
-  <!-- État de chargement Ultra Moderne -->
+  <!-- État de chargement Premium -->
   <div *ngIf="isLoading" class="loading-container">
     <div class="loading-content">
       <div class="spinner-container">
@@ -21,16 +22,16 @@
     </div>
   </div>
 
-  <!-- Contenu principal Ultra Moderne -->
+  <!-- Contenu principal Premium -->
   <main *ngIf="!isLoading" class="missions-grid">
 
-    <!-- Carte pour chaque mission avec design épuré -->
+    <!-- Carte pour chaque mission avec hiérarchie optimisée -->
     <div *ngFor="let mission of missions; let i = index; trackBy: trackByMissionId" 
          class="mission-card" 
          [routerLink]="['/client/paiements/mission', mission.id]"
          [style.animation-delay]="(i * 0.1) + 's'">
       
-      <!-- Header de la carte -->
+      <!-- Header de la carte - Hiérarchie optimisée -->
       <div class="card-header">
         <div class="mission-info">
           <h2 class="mission-title">{{ mission.titre }}</h2>
@@ -45,13 +46,13 @@
         </div>
       </div>
 
-      <!-- Montant principal -->
+      <!-- Bloc montant - Élément focus principal -->
       <div class="amount-section">
         <div class="amount-display">
           <span class="amount-label">Montant total</span>
           <span class="amount-value">
             <ng-container *ngIf="mission.summary?.totalBrut !== undefined && mission.summary?.totalBrut !== null; else loadingAmount">
-              {{ mission.summary?.totalBrut | number:'1.2-2' }} {{ mission.devise || 'TND' }}
+              {{ mission.summary?.totalBrut | number:'1.2-2' }} TND
             </ng-container>
             <ng-template #loadingAmount>
               <span class="loading-amount">Chargement...</span>
@@ -60,30 +61,31 @@
         </div>
       </div>
 
-      <!-- Barre de progression simplifiée -->
+      <!-- Avancement - Représentation unique optimisée -->
       <div class="progress-section">
         <div class="progress-info">
           <span class="progress-text">{{ mission.paidTranches }} / {{ mission.totalTranches }} tranches</span>
-          <span class="progress-percentage">{{ mission.progress | number:'1.0-0' }}%</span>
         </div>
         <div class="progress-bar">
-          <div class="progress-fill" [style.width.%]="mission.progress"></div>
+          <div class="progress-fill" [style.width.%]="mission.progress">
+            <span class="progress-percentage">{{ mission.progress | number:'1.0-0' }}%</span>
+          </div>
         </div>
       </div>
 
-      <!-- Actions -->
+      <!-- CTA principal - Bouton plein contrasté -->
       <div class="card-actions">
-        <a class="action-link" [routerLink]="['/client/paiements/mission', mission.id]">
+        <button class="action-button" [routerLink]="['/client/paiements/mission', mission.id]">
           <span>Gérer les paiements</span>
           <fa-icon [icon]="faArrowRight"></fa-icon>
-        </a>
+        </button>
       </div>
 
       <!-- Effet de brillance -->
       <div class="card-shine"></div>
     </div>
 
-    <!-- État vide Ultra Moderne -->
+    <!-- État vide Premium -->
     <div *ngIf="missions.length === 0" class="empty-state">
       <div class="empty-content">
         <div class="empty-icon">

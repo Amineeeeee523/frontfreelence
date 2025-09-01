@@ -4,9 +4,13 @@ import {
     Langue,
     NiveauExperience,
     TypeUtilisateur,
-    TypeClient
+    TypeClient,
+    Mobilite,
+    NiveauLangue,
+    NiveauMaitrise,
+    EngagementModel
 } from './utilisateur.model';
-import { MissionCategorie } from './mission.model';
+import { MissionCategorie, Gouvernorat } from './mission.model';
 
 /**
  * DTO d’inscription enrichi : permet de créer un utili­sateur
@@ -27,6 +31,10 @@ export interface RegisterRequestDto {
     numeroTelephone?: string;
     photoProfilUrl?: string;
     languePref?: Langue;
+    // Nouveaux champs communs
+    gouvernorat?: Gouvernorat;
+    linkedinUrl?: string;
+    githubUrl?: string;
 
     // --- Attributs Freelance ---
     competences?: string[];
@@ -39,6 +47,23 @@ export interface RegisterRequestDto {
     categories?: MissionCategorie[];
     portfolioUrls?: string[];
     pushTokens?: string[];
+
+    // ======== AJOUTS FREELANCE ========
+    titreProfil?: string;
+    anneesExperience?: number;
+    timezone?: string; // ex. Africa/Tunis
+    mobilite?: Mobilite;
+    dateDisponibilite?: string;        // ISO string (YYYY-MM-DD)
+    chargeHebdoSouhaiteeJours?: number;
+
+    modelesEngagementPreferes?: EngagementModel[];
+    preferenceDuree?: import('./utilisateur.model').PreferenceDuree;
+    flexibiliteTarifairePourcent?: number;
+
+    langues?: Partial<Record<Langue, NiveauLangue>>;                // FR/AR/EN + niveau
+    competencesNiveaux?: Record<string, NiveauMaitrise>;            // skill -> niveau
+    certifications?: string[];
+    nombreAvis?: number;
 
     // --- Attributs Client ---
     nomEntreprise?: string;

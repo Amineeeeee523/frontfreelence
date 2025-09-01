@@ -1,0 +1,349 @@
+<div class="mission-detail-modal">
+  <!-- Loading State -->
+  <div *ngIf="isLoading()" class="loading-container">
+    <div class="loading-spinner"></div>
+    <p>Chargement des détails de la mission...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="isError()" class="error-container">
+    <fa-icon [icon]="faExclamationTriangle" class="error-icon"></fa-icon>
+    <h3>Erreur de chargement</h3>
+    <p>{{ errorMessage() }}</p>
+  </div>
+
+  <!-- Mission Details -->
+  <div *ngIf="!isLoading() && !isError() && mission()" class="mission-content">
+    
+    <!-- Header Section -->
+    <header class="mission-header">
+      <div class="header-main">
+        <div class="mission-title-section">
+          <h1 class="mission-title">{{ mission()?.titre }}</h1>
+          <div class="mission-meta">
+            <span class="mission-id">#{{ mission()?.id }}</span>
+            <span class="mission-category">{{ getCategorieLabel(mission()?.categorie) }}</span>
+          </div>
+        </div>
+        
+        <div class="status-section">
+          <div class="status-badge" [ngClass]="statusClass()">
+            <fa-icon [icon]="statusIcon()"></fa-icon>
+            <span>{{ getStatusLabel(mission()?.statut) }}</span>
+          </div>
+          <div *ngIf="mission()?.urgent" class="urgent-badge">
+            <fa-icon [icon]="faExclamationTriangle"></fa-icon>
+            <span>Urgent</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-details">
+        <div class="detail-chip">
+          <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+          <span>{{ formatCurrency(mission()?.budget, mission()?.devise) }}</span>
+        </div>
+        <div class="detail-chip">
+          <fa-icon [icon]="faCalendarAlt"></fa-icon>
+          <span>Deadline: {{ formatDate(mission()?.delaiLivraison) }}</span>
+        </div>
+        <div *ngIf="mission()?.localisation" class="detail-chip">
+          <fa-icon [icon]="faMapPin"></fa-icon>
+          <span>{{ mission()?.localisation }}</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="mission-main">
+      
+      <!-- Overview Section -->
+      <section class="overview-section">
+        <h2 class="section-title">
+          <fa-icon [icon]="faEye"></fa-icon>
+          Aperçu de la mission
+        </h2>
+        
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="card-icon">
+              <fa-icon [icon]="faBuilding"></fa-icon>
+            </div>
+            <div class="card-content">
+              <h4>Modalité de travail</h4>
+              <p>{{ getModaliteLabel(mission()?.modaliteTravail) }}</p>
+            </div>
+          </div>
+
+          <div class="overview-card">
+            <div class="card-icon">
+              <fa-icon [icon]="faMapPin"></fa-icon>
+            </div>
+            <div class="card-content">
+              <h4>Gouvernorat</h4>
+              <p>{{ getGouvernoratLabel(mission()?.gouvernorat) }}</p>
+            </div>
+          </div>
+
+          <div class="overview-card">
+            <div class="card-icon">
+              <fa-icon [icon]="faCalendarAlt"></fa-icon>
+            </div>
+            <div class="card-content">
+              <h4>Date de début souhaitée</h4>
+              <p>{{ formatDate(mission()?.dateDebutSouhaitee) }}</p>
+            </div>
+          </div>
+
+          <div class="overview-card">
+            <div class="card-icon">
+              <fa-icon [icon]="faClock"></fa-icon>
+            </div>
+            <div class="card-content">
+              <h4>Charge hebdomadaire</h4>
+              <p>{{ mission()?.chargeHebdoJours || '-' }} jours/semaine</p>
+            </div>
+          </div>
+
+          <div class="overview-card">
+            <div class="card-icon">
+              <fa-icon [icon]="faBriefcase"></fa-icon>
+            </div>
+            <div class="card-content">
+              <h4>Durée estimée</h4>
+              <p>{{ mission()?.dureeEstimeeJours || '-' }} jours</p>
+            </div>
+          </div>
+
+          <div class="overview-card">
+            <div class="card-icon">
+              <fa-icon [icon]="faFileAlt"></fa-icon>
+            </div>
+            <div class="card-content">
+              <h4>Qualité du brief</h4>
+              <p>{{ getNiveauBriefLabel(mission()?.qualiteBrief) }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Experience Level & Badges -->
+        <div class="experience-section">
+          <div class="experience-level">
+            <h4>Niveau d'expérience requis</h4>
+            <div class="level-badge">
+              <fa-icon [icon]="faGraduationCap"></fa-icon>
+              <span>{{ mission()?.niveauExperienceMin || '-' }}</span>
+            </div>
+          </div>
+
+          <div *ngIf="mission()?.badges?.length" class="badges-section">
+            <h4>Badges</h4>
+            <div class="badges-list">
+              <span *ngFor="let badge of mission()?.badges" class="badge">
+                <fa-icon [icon]="faStar"></fa-icon>
+                {{ badge }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Participants -->
+        <div class="participants-section">
+          <div class="participant-card">
+            <div class="participant-avatar">
+              <fa-icon [icon]="faUser"></fa-icon>
+            </div>
+            <div class="participant-info">
+              <h4>Client</h4>
+              <p>{{ mission()?.clientNomComplet || '-' }}</p>
+            </div>
+          </div>
+
+          <div *ngIf="mission()?.freelanceNomComplet" class="participant-card">
+            <div class="participant-avatar">
+              <fa-icon [icon]="faUser"></fa-icon>
+            </div>
+            <div class="participant-info">
+              <h4>Freelance</h4>
+              <p>{{ mission()?.freelanceNomComplet }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Payment Section -->
+      <section class="payment-section">
+        <h2 class="section-title">
+          <fa-icon [icon]="faCreditCard"></fa-icon>
+          Paiements & Progression
+        </h2>
+
+        <div class="payment-overview">
+          <div class="payment-stats">
+            <div class="stat-card">
+              <div class="stat-value">{{ formatCurrency(totalAmount(), mission()?.devise) }}</div>
+              <div class="stat-label">Total brut</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ formatCurrency(paidAmount(), mission()?.devise) }}</div>
+              <div class="stat-label">Montant payé</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">{{ progressPercentage() }}%</div>
+              <div class="stat-label">Progression</div>
+            </div>
+          </div>
+
+          <div class="progress-bar">
+            <div class="progress-fill" [style.width.%]="progressPercentage()"></div>
+          </div>
+        </div>
+
+        <!-- Tranches List -->
+        <div class="tranches-list">
+          <h3>Tranches de paiement</h3>
+          <div class="tranche-item" *ngFor="let tranche of mission()?.paiements?.tranches || []">
+            <div class="tranche-info">
+              <div class="tranche-header">
+                <h4>{{ tranche.titre }}</h4>
+                <div class="tranche-badges">
+                  <span *ngIf="tranche.required" class="badge required">Requis</span>
+                  <span *ngIf="tranche.finale" class="badge final">Finale</span>
+                  <span class="badge status" [ngClass]="trancheStatusClass(tranche.statut)">
+                    {{ tranche.statut || '-' }}
+                  </span>
+                </div>
+              </div>
+              <div class="tranche-details">
+                <span class="tranche-amount">{{ formatCurrency(tranche.montantBrut, mission()?.devise) }}</span>
+                <span class="tranche-order">Tranche #{{ tranche.ordre }}</span>
+              </div>
+            </div>
+            
+            <div class="tranche-actions">
+              <button 
+                *ngIf="tranche.paymentUrl" 
+                class="btn-pay"
+                (click)="onPayerTranche(tranche)">
+                <fa-icon [icon]="faCreditCard"></fa-icon>
+                Payer
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Deliverables Section -->
+      <section class="deliverables-section">
+        <h2 class="section-title">
+          <fa-icon [icon]="faFileAlt"></fa-icon>
+          Livrables
+        </h2>
+
+        <div class="deliverables-list">
+          <div class="deliverable-item" *ngFor="let livrable of mission()?.livrables || []">
+            <div class="deliverable-header">
+              <h4>{{ livrable.titre }}</h4>
+              <div class="deliverable-status" [ngClass]="livrableStatusClass(livrable.status)">
+                {{ livrable.status || '-' }}
+              </div>
+            </div>
+
+            <div *ngIf="livrable.description" class="deliverable-description">
+              {{ livrable.description }}
+            </div>
+
+            <div class="deliverable-meta">
+              <span class="deliverable-date">
+                <fa-icon [icon]="faCalendarAlt"></fa-icon>
+                {{ formatDate(livrable.dateEnvoi) }}
+              </span>
+            </div>
+
+            <!-- Files -->
+            <div *ngIf="livrable.cheminsFichiers?.length" class="deliverable-files">
+              <h5>Fichiers</h5>
+              <div class="files-list">
+                <button 
+                  *ngFor="let file of livrable.cheminsFichiers; let i = index"
+                  class="file-btn"
+                  (click)="openFile(file)">
+                  <fa-icon [icon]="faDownload"></fa-icon>
+                  Fichier {{ i + 1 }}
+                </button>
+              </div>
+            </div>
+
+            <!-- External Links -->
+            <div *ngIf="livrable.liensExternes?.length" class="deliverable-links">
+              <h5>Liens externes</h5>
+              <div class="links-list">
+                <a 
+                  *ngFor="let link of livrable.liensExternes"
+                  [href]="link"
+                  target="_blank"
+                  class="link-btn">
+                  <fa-icon [icon]="faLink"></fa-icon>
+                  {{ link }}
+                </a>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div *ngIf="livrable.status === 'EN_ATTENTE'" class="deliverable-actions">
+              <button 
+                *ngIf="livrable.canValidate"
+                class="btn-validate"
+                (click)="onValiderLivrable(livrable)">
+                <fa-icon [icon]="faCheckCircle"></fa-icon>
+                Valider
+              </button>
+              <button 
+                *ngIf="livrable.canReject"
+                class="btn-reject"
+                (click)="onRejeterLivrable(livrable)">
+                <fa-icon [icon]="faTimes"></fa-icon>
+                Rejeter
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Files Section -->
+      <section *ngIf="(mission()?.mediaUrls?.length || 0) > 0 || mission()?.videoBriefUrl" class="files-section">
+        <h2 class="section-title">
+          <fa-icon [icon]="faDownload"></fa-icon>
+          Fichiers & Médias
+        </h2>
+
+        <!-- Media Gallery -->
+        <div *ngIf="mission()?.mediaUrls?.length" class="media-gallery">
+          <h3>Images & Maquettes</h3>
+          <div class="gallery-grid">
+            <div 
+              *ngFor="let mediaUrl of mission()?.mediaUrls; let i = index"
+              class="gallery-item"
+              (click)="openFile(mediaUrl)">
+              <img [src]="mediaUrl" [alt]="'Media ' + (i + 1)" />
+              <div class="gallery-overlay">
+                <fa-icon [icon]="faEye"></fa-icon>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Brief -->
+        <div *ngIf="mission()?.videoBriefUrl" class="video-section">
+          <h3>Vidéo de présentation</h3>
+          <div class="video-container">
+            <button class="video-btn" (click)="openVideo(mission()?.videoBriefUrl!)">
+              <fa-icon [icon]="faPlay"></fa-icon>
+              <span>Regarder la vidéo</span>
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>

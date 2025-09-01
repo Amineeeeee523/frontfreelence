@@ -23,7 +23,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
-import { Mission, MissionStatut } from '../../models/mission.model';
+import { MissionStatut } from '../../models/mission.model';
+import { MissionCard } from '../../models/mission-card.model';
 import { MissionsService } from '../../services/missions.service';
 import { AuthService } from '../../services/auth.service';
 import { TranchePaiementService } from '../../services/tranche-paiement.service';
@@ -33,7 +34,7 @@ import { StatutTranche } from '../../models/tranche-paiement.model';
 /**
  * Interface étendue pour l'affichage, qui inclut le résumé de paiement.
  */
-interface MissionView extends Mission {
+interface MissionView extends MissionCard {
   summary?: MissionPaiementSummaryDTO;
   paidTranches: number;
   totalTranches: number;
@@ -92,7 +93,7 @@ export class PaiementclientComponent implements OnInit {
     this.missionService.getMissionsByClient(clientId).subscribe({
       next: (missions) => {
         const missionViews: MissionView[] = missions.map((m) => ({
-          ...m, // Utilise directement le modèle Mission
+          ...m,
           paidTranches: 0,
           totalTranches: 0,
           progress: 0,
@@ -106,7 +107,7 @@ export class PaiementclientComponent implements OnInit {
             mission.summary = summary;
             mission.totalTranches = summary.tranches.length;
             mission.paidTranches = summary.tranches.filter(
-              (t) => t.statut === StatutTranche.VALIDEE || t.statut === StatutTranche.VERSEE_FREELANCE
+              (t) => t.statut === StatutTranche.VERSEE_FREELANCE
             ).length;
             mission.progress =
               mission.totalTranches > 0
@@ -279,9 +280,29 @@ export class PaiementclientComponent implements OnInit {
   }
 
   /**
+   * Lance un paiement direct (Flouci simulation) pour une tranche donnée.
+   * - Appelle l'endpoint /v1/tranches/{id}/payer-direct
+   * - Ouvre l'URL retournée (simulation page) dans un nouvel onglet
+   */
+  payerTrancheDirect(trancheId: number): void {
+    const rawId = this.authService.snapshot?.id;
+    const xUserId = typeof rawId === 'number' ? rawId : undefined;
+    this.paiementService.payerDirect(trancheId, xUserId).subscribe({
+      next: (dto) => {
+        this.paiementService.openPaymentUrl(dto);
+      },
+      error: () => {
+        // TODO: afficher un toast d'erreur si besoin
+      }
+    });
+  }
+
+  /**
    * TrackBy function pour optimiser les performances de la liste.
    */
   trackByMissionId(index: number, mission: MissionView): number {
     return mission.id;
   }
+
+
 }

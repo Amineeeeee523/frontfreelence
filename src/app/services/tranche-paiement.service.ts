@@ -25,13 +25,18 @@ export class TranchePaiementService {
 
   /** Créer une tranche (milestone) */
   create(dto: TranchePaiementCreateDTO): Observable<TranchePaiementResponseDTO> {
-    // 👉 Force la conversion en Number pour Jackson
-    const body = {
+    // 👉 Aligne sur backend: montantBrut (JsonAlias montant accepté)
+    const montantValue = (dto as any).montantBrut ?? (dto as any).montant;
+    const body: any = {
       ...dto,
-      montant: (+dto.montant).toFixed(2), // envoyé comme string décimal "2000.00"
+      montantBrut: montantValue != null ? (+montantValue).toFixed(2) : undefined,
+      montant: undefined,
       ordre: Number(dto.ordre),
       missionId: Number(dto.missionId)
     };
+    if (montantValue != null) {
+      body.montant = (+montantValue).toFixed(2);
+    }
     
     return this.http.post<TranchePaiementResponseDTO>(
       `${this.url}/tranches`,
@@ -50,6 +55,7 @@ export class TranchePaiementService {
     return this.http.post<TranchePaiementResponseDTO>(
       `${this.url}/tranches/${trancheId}/checkout`,
       null,
+      { withCredentials: true }
     );
   }
 
@@ -60,6 +66,21 @@ export class TranchePaiementService {
     return this.http.post<TranchePaiementResponseDTO>(
       `${this.url}/tranches/${trancheId}/valider`,
       null,
+      { withCredentials: true }
+    );
+  }
+
+  /** Paiement direct (Flouci - simulation supportée côté backend) */
+  payerDirect(
+    trancheId: number,
+    xUserId?: number,
+  ): Observable<TranchePaiementResponseDTO> {
+    const headers: any = {};
+    if (xUserId) headers['X-User-Id'] = String(xUserId);
+    return this.http.post<TranchePaiementResponseDTO>(
+      `${this.api}/v1/tranches/${trancheId}/payer-direct`,
+      null,
+      { headers, withCredentials: true }
     );
   }
 
@@ -69,13 +90,37 @@ export class TranchePaiementService {
   ): Observable<MissionPaiementSummaryDTO> {
     return this.http.get<MissionPaiementSummaryDTO>(
       `${this.url}/missions/${missionId}/summary`,
+      { withCredentials: true }
     );
   }
 
-  /** Ouvre la page de paiement Paymee */
-  openPaymeeUrl(dto: TranchePaiementResponseDTO): void {
+  /** Ouvre l'URL de paiement (Flouci simulation en direct) */
+  openPaymentUrl(dto: TranchePaiementResponseDTO): void {
     if (dto.paymeePaymentUrl) {
       window.open(dto.paymeePaymentUrl, '_blank', 'noopener');
     }
+  }
+
+  /** Compat: alias vers openPaymentUrl */
+  openPaymeeUrl(dto: TranchePaiementResponseDTO): void {
+    this.openPaymentUrl(dto);
+  }
+
+  /** Marque une tranche comme finale */
+  setFinale(trancheId: number, value: boolean): Observable<TranchePaiementResponseDTO> {
+    return this.http.patch<TranchePaiementResponseDTO>(
+      `${this.url}/tranches/${trancheId}/finale`,
+      null,
+      { params: { value: String(value) }, withCredentials: true }
+    );
+  }
+
+  /** Marque une tranche comme requise */
+  setRequired(trancheId: number, value: boolean): Observable<TranchePaiementResponseDTO> {
+    return this.http.patch<TranchePaiementResponseDTO>(
+      `${this.url}/tranches/${trancheId}/required`,
+      null,
+      { params: { value: String(value) }, withCredentials: true }
+    );
   }
 }

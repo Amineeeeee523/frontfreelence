@@ -40,28 +40,67 @@
             </div>
 
             <div class="card-content">
-              <!-- Client Info -->
-              <div class="client-info">
-                <img [src]="mission.clientAvatarUrl || 'https://i.pravatar.cc/50?u=' + mission.clientId" alt="Avatar client" class="client-avatar">
-                <div class="client-details">
-                  <span class="client-name">{{ mission.clientNom }}</span>
-                  <div class="client-badges">
-                    <span class="badge verified" *ngIf="mission.clientEstVerifie"><fa-icon [icon]="faCheckCircle"></fa-icon> Client Vérifié</span>
-                    <span class="badge match-score" *ngIf="mission.scoreCompatibilite"><fa-icon [icon]="faStar"></fa-icon> {{ (mission.scoreCompatibilite || 0) * 100 | number:'1.0-0' }}% Match</span>
+              <!-- Top bar: client info (left) + top chips (right) -->
+              <div class="top-bar">
+                <div class="client-info">
+                  <img [src]="mission.clientAvatarUrl || mission.client?.photoUrl || 'https://i.pravatar.cc/50?u=' + (mission.clientId || mission.client?.id)" alt="Avatar client" class="client-avatar">
+                  <div class="client-details">
+                    <span class="client-name">{{ mission.clientNom || (mission.client ? (mission.client.prenom + ' ' + mission.client.nom) : '') }}</span>
+                    <div class="client-badges">
+                      <span class="badge verified" *ngIf="mission.clientEstVerifie"><fa-icon [icon]="faCheckCircle"></fa-icon> Client Vérifié</span>
+                      <span class="badge match-score" *ngIf="mission.scoreCompatibilite"><fa-icon [icon]="faStar"></fa-icon> {{ (mission.scoreCompatibilite || 0) * 100 | number:'1.0-0' }}% Match</span>
+                    </div>
                   </div>
+                </div>
+                <div class="top-chips">
+                  <span class="gouv-badge" *ngIf="mission.gouvernorat">
+                    <fa-icon [icon]="faMapMarkerAlt"></fa-icon>
+                    {{ mission.gouvernorat }}
+                  </span>
+                  <span class="urgent-badge" *ngIf="mission.urgent">
+                    <fa-icon [icon]="faFire"></fa-icon>
+                    Urgent
+                  </span>
                 </div>
               </div>
 
-              <!-- Mission Title -->
-              <h3 class="mission-title">{{ mission.titre }}</h3>
+              <!-- Mission Title + Description Toggle -->
+              <div class="title-row">
+                <h3 class="mission-title">{{ mission.titre }}</h3>
+                <button
+                  class="description-toggle"
+                  type="button"
+                  (click)="$event.stopPropagation(); toggleDescription(mission.id)"
+                  (pointerdown)="$event.stopPropagation()"
+                  (pointerup)="$event.stopPropagation()"
+                  (mousedown)="$event.stopPropagation()"
+                  (mouseup)="$event.stopPropagation()"
+                  (touchstart)="$event.stopPropagation()"
+                  (touchend)="$event.stopPropagation()"
+                  [attr.aria-expanded]="expandedDescriptions[mission.id] ? 'true' : 'false'">
+                  <fa-icon [icon]="faChevronDown" [class.rotated]="expandedDescriptions[mission.id]"></fa-icon>
+                </button>
+              </div>
 
               <!-- Mission Details Grid -->
               <div class="mission-meta">
-                <div class="meta-item budget"><fa-icon [icon]="faEuroSign"></fa-icon> {{ mission.budget | currency:'TND':'symbol':'1.0-0' }}</div>
+                <div class="meta-item budget"><fa-icon [icon]="faEuroSign"></fa-icon> {{ mission.budget | currency:(mission.devise || 'TND'):'symbol':'1.0-0' }}</div>
                 <div class="meta-item duration"><fa-icon [icon]="faClock"></fa-icon> {{ mission.dureeEstimeeJours }} jours</div>
-                <div class="meta-item location"><fa-icon [icon]="faMapMarkerAlt"></fa-icon> {{ mission.localisation || 'Remote' }}</div>
+                <div class="meta-item modality" *ngIf="mission.modaliteTravail"><fa-icon [icon]="faBriefcase"></fa-icon> {{ mission.modaliteTravail | titlecase }}</div>
+                <div class="meta-item category"><fa-icon [icon]="faStar"></fa-icon> {{ mission.categorie | titlecase | slice:0:18 }}<ng-container *ngIf="(mission.categorie + '').length > 18">…</ng-container></div>
                 <div class="meta-item published-date" *ngIf="mission.datePublication">
                   <fa-icon [icon]="faCalendarDay"></fa-icon> {{ formatDate(mission.datePublication) }}
+                </div>
+                <div class="meta-item deadline" *ngIf="mission.dateLimiteCandidature">
+                  <fa-icon [icon]="faCalendarDay"></fa-icon> Limite: {{ mission.dateLimiteCandidature | date:'dd/MM' }}
+                </div>
+                <div class="meta-item experience" *ngIf="mission.niveauExperienceMin">
+                  <fa-icon [icon]="faCheckCircle"></fa-icon>
+                  {{ mission.niveauExperienceMin | titlecase }}
+                </div>
+                <div class="meta-item workload" *ngIf="mission.chargeHebdoJours">
+                  <fa-icon [icon]="faClock"></fa-icon>
+                  {{ mission.chargeHebdoJours }} j/sem
                 </div>
               </div>
 
@@ -74,12 +113,19 @@
                 </button>
               </div>
 
-              <!-- Résumé / description courte -->
-              <p class="mission-summary" *ngIf="mission.resume">{{ mission.resume }}</p>
-
-              <!-- Compétences requises -->
+              <!-- Compétences requises (KPI style, inside card bottom) -->
               <div class="mission-skills" *ngIf="mission.competencesRequises && mission.competencesRequises.length">
-                <span class="skill-badge" *ngFor="let skill of mission.competencesRequises">{{ skill }}</span>
+                <span class="kpi-badge" *ngFor="let skill of mission.competencesRequises | slice:0:6">
+                  <span class="kpi-dot"></span>
+                  <span class="kpi-label">{{ skill }}</span>
+                </span>
+              </div>
+
+              <!-- Description Expandable (Bottom) -->
+              <div class="mission-description" *ngIf="expandedDescriptions[mission.id]">
+                <div class="description-content">
+                  <p>{{ safeMissionText(mission) || 'Aucune description disponible' }}</p>
+                </div>
               </div>
             </div>
           </div>

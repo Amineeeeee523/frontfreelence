@@ -1,0 +1,84 @@
+<div class="mc-card" [ngClass]="statusClass">
+  <div class="mc-header">
+    <div class="mc-title">
+      <h3 class="title">{{ mission?.titre }}</h3>
+      <div class="sub">
+        <span class="badge-category" *ngIf="mission?.categorie">{{ mission.categorie | titlecase }}</span>
+        <span class="badge-status">{{ mission?.statut | titlecase }}</span>
+      </div>
+    </div>
+
+    <div class="mc-budget-deadline">
+      <div class="line">
+        <span class="label">Budget</span>
+        <span class="value">{{ budgetDisplay }}</span>
+      </div>
+      <div class="line">
+        <span class="label">Deadline</span>
+        <span class="value" *ngIf="deadlineDisplay as d">{{ d | date: 'dd/MM/yyyy' }}</span>
+        <span class="value" *ngIf="!deadlineDisplay">-</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="mc-freelance" *ngIf="mission?.freelance">
+    <div class="avatar">
+      <img [src]="freelancePhoto" alt="freelance" />
+    </div>
+    <div class="info">
+      <div class="name">{{ freelanceName || 'Freelance' }}</div>
+      <div class="meta" *ngIf="mission?.freelance?.localisation as loc">{{ loc }}</div>
+    </div>
+  </div>
+
+  <div class="mc-kpis">
+    <div class="kpi">
+      <div class="kpi-label">Total</div>
+      <div class="kpi-value">{{ livrablesTotal }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Validés</div>
+      <div class="kpi-value success">{{ livrablesValides }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">En attente</div>
+      <div class="kpi-value warn">{{ livrablesEnAttente }}</div>
+    </div>
+  </div>
+
+  <!-- Badges clôture -->
+  <div class="chips-row" *ngIf="mission">
+    <span *ngIf="mission.pretACloturer" class="chip chip-success">Prêt à clôturer</span>
+    <span class="chip chip-neutral">{{ mission.closurePolicy }}</span>
+    <span *ngIf="mission.closedByClient" class="chip chip-outline">Confirmé par vous</span>
+    <span *ngIf="mission.closedByFreelancer" class="chip chip-outline">Confirmé par freelance</span>
+  </div>
+
+  <div class="mc-progress">
+    <div class="progress-top">
+      <span class="label">Progression</span>
+      <span class="pct">{{ progressPct }}%</span>
+    </div>
+    <div class="bar">
+      <div class="fill" [style.width.%]="progressPct"></div>
+    </div>
+  </div>
+
+  <div class="mc-alert livraison" *ngIf="hasLivraisonEnAttente">
+    <span class="icon">📦</span>
+    <span class="text">Livraison en attente</span>
+  </div>
+  <div class="mc-alert tranche" *ngIf="!hasLivraisonEnAttente && hasTrancheDue">
+    <span class="icon">💳</span>
+    <span class="text">Tranche due</span>
+  </div>
+
+  <div class="mc-cta">
+    <button class="cta-btn" [ngClass]="ctaClass" [disabled]="ctaDisabled" (click)="onPrimaryCtaClick()">
+      {{ ctaLabel }}
+    </button>
+    <a class="primary-link" [routerLink]="['/client/paiements/mission', mission?.id]">Gérer la clôture</a>
+  </div>
+</div>
+
+

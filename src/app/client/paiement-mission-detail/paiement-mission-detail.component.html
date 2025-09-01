@@ -1,13 +1,49 @@
+<!--
+  INTERFACE DE DÉTAIL DE PAIEMENT - VERSION PREMIUM 5.0
+  Design ultra moderne avec hiérarchie visuelle optimisée
+  Charte cyan → mauve cohérente
+-->
 <div class="detail-container">
 
-  <!-- En-tête de la page -->
-  <header class="page-header">
-    <button (click)="goBack()" class="back-button">
-      <fa-icon [icon]="faArrowLeft"></fa-icon>
-    </button>
-    <div *ngIf="missionSummary">
-      <h1>{{ missionSummary.titreMission }}</h1>
-      <p>Suivi détaillé des tranches de paiement</p>
+  <!-- Header sticky avec résumé collant -->
+  <header class="page-header" *ngIf="missionSummary">
+    <div class="header-content">
+      <div class="header-left">
+        <button (click)="goBack()" class="back-button">
+          <fa-icon [icon]="faArrowLeft"></fa-icon>
+        </button>
+        <div class="mission-info">
+          <h1>{{ missionSummary.titreMission }}</h1>
+          <div class="mission-meta">
+            <span class="mission-id">#{{ missionSummary.missionId }}</span>
+            <span class="mission-status" [ngClass]="getStatusClass()">
+              {{ getStatusText() }}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Résumé collant -->
+      <div class="header-summary">
+        <div class="summary-item">
+          <span class="summary-label">Total engagé</span>
+          <span class="summary-value">{{ missionSummary.totalBrut | number:'1.2-2' }} TND</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Payé</span>
+          <span class="summary-value">{{ getPaidPercentage() | number:'1.0-0' }}%</span>
+        </div>
+        <div class="summary-actions">
+          <button *ngIf="canPayFreelancer()" class="action-button primary" (click)="payFreelancer()">
+            <fa-icon [icon]="faCreditCard"></fa-icon>
+            Verser au freelance
+          </button>
+          <button *ngIf="canCloseMission()" class="action-button secondary" (click)="closeMission()">
+            <fa-icon [icon]="faCheckCircle"></fa-icon>
+            Clôturer la mission
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -18,40 +54,147 @@
   </div>
 
   <!-- Contenu principal -->
-  <main *ngIf="!isLoading && missionSummary">
+  <main *ngIf="!isLoading && missionSummary" class="main-content">
 
-    <!-- Timeline des tranches de paiement -->
-    <div class="timeline">
-      <div *ngFor="let tranche of missionSummary.tranches; let isLast = last" class="timeline-item" [ngClass]="getTimelineClass(tranche.statut)">
-        
-        <!-- Point et ligne de la timeline -->
-        <div class="timeline-point">
-          <fa-icon [icon]="getTimelineIcon(tranche.statut)"></fa-icon>
+    <!-- Alerte de conditions non remplies -->
+    <div *ngIf="!missionSummary.allRequiredPaidAndAccepted" class="alert-warning">
+      <fa-icon [icon]="faExclamationCircle"></fa-icon>
+      <div class="alert-content">
+        <h3>Conditions de clôture non remplies</h3>
+        <p>Complétez d'abord les tranches requises (paiement + validation) pour pouvoir clôturer la mission.</p>
+      </div>
+    </div>
+
+    <!-- Section paramètres de clôture (réduite) -->
+    <section class="card card-settings" [class.collapsed]="!showSettings">
+      <header class="card-header" (click)="toggleSettings()">
+        <h2>Paramètres de clôture</h2>
+        <div class="header-actions">
+          <span class="settings-hint">Détermine quand la mission passe "Terminée"</span>
+          <fa-icon [icon]="showSettings ? 'chevron-up' : 'chevron-down'"></fa-icon>
         </div>
-        <div *ngIf="!isLast" class="timeline-line"></div>
+      </header>
 
-        <!-- Carte de la tranche -->
-        <div class="tranche-card">
-          <div class="card-header">
-            <h3>{{ tranche.ordre }}. {{ tranche.titre }}</h3>
-            <span class="badge" [ngClass]="getTimelineClass(tranche.statut)">
-              {{ formatStatut(tranche.statut) }}
-            </span>
+      <div class="card-body" *ngIf="showSettings">
+        <div class="settings-row">
+          <label>Policy de clôture</label>
+          <select [ngModel]="missionSummary.closurePolicy" (ngModelChange)="onChangePolicy($event)">
+            <option value="FINAL_MILESTONE_REQUIRED">Tranche finale requise</option>
+            <option value="MANUAL_DUAL_CONFIRM">Double confirmation</option>
+            <option value="CONTRACT_TOTAL_AMOUNT">Total contrat atteint</option>
+          </select>
+          <div class="policy-hint" *ngIf="isFinalPolicy">
+            La mission se termine lorsque la tranche marquée "finale" est payée et acceptée.
           </div>
+          <div class="policy-hint" *ngIf="isManualPolicy">
+            La mission se termine lorsque vous et le freelance confirmez la clôture.
+          </div>
+          <div class="policy-hint" *ngIf="isContractPolicy">
+            La mission se termine quand le total payé atteint le montant de contrat + un livrable final accepté.
+          </div>
+        </div>
 
-          <div class="card-body">
-            <div class="amount-details">
-              <div><span>Montant Brut</span><strong>{{ tranche.montantBrut | number:'1.2-2' }} TND</strong></div>
-              <div><span>Commission</span><strong>{{ tranche.commissionPlateforme | number:'1.2-2' }} TND</strong></div>
-              <div><span>Net Freelance</span><strong>{{ tranche.montantNetFreelance | number:'1.2-2' }} TND</strong></div>
+        <div class="settings-row" *ngIf="isContractPolicy">
+          <label>Montant du contrat</label>
+          <div class="inline-input">
+            <input type="number" [ngModel]="missionSummary.contractTotalAmount" (ngModelChange)="missionSummary!.contractTotalAmount = $event" min="0" step="0.01">
+            <button class="btn-update" (click)="updateContractAmount(+missionSummary!.contractTotalAmount!)">
+              Mettre à jour
+            </button>
+          </div>
+          <div class="progress-compact" *ngIf="missionSummary.paidTotal != null && missionSummary.contractTotalAmount != null">
+            Payé {{ missionSummary.paidTotal | number:'1.2-2' }} / {{ missionSummary.contractTotalAmount | number:'1.2-2' }} TND
+            <div class="bar">
+              <div class="fill" [style.width.%]="(missionSummary.paidTotal / missionSummary.contractTotalAmount) * 100"></div>
             </div>
           </div>
+        </div>
 
-          <div class="card-footer" *ngIf="isActionAvailable(tranche.statut)">
-            <button class="action-button" (click)="handleTrancheAction(tranche)">
-              <fa-icon [icon]="tranche.statut === 'EN_ATTENTE_DEPOT' ? faCreditCard : faCheckCircle"></fa-icon>
-              <span>{{ getButtonText(tranche.statut) }}</span>
-            </button>
+        <div class="status-chips">
+          <span class="chip" [class.chip-success]="missionSummary.allRequiredPaidAndAccepted">
+            Tranches requises {{ missionSummary.allRequiredPaidAndAccepted ? 'OK' : 'à compléter' }}
+          </span>
+          <span class="chip" *ngIf="isFinalPolicy" [class.chip-success]="missionSummary.finalTranchePaidAndAccepted">
+            Tranche finale {{ missionSummary.finalTranchePaidAndAccepted ? 'OK' : 'non satisfaite' }}
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Timeline des tranches de paiement -->
+    <div class="timeline-container">
+      <div class="timeline">
+        <div *ngFor="let tranche of missionSummary.tranches; let isLast = last" 
+             class="timeline-item" 
+             [ngClass]="getTimelineClass(tranche.statut)">
+          
+          <!-- Point et ligne de la timeline -->
+          <div class="timeline-point">
+            <fa-icon [icon]="getTimelineIcon(tranche.statut)"></fa-icon>
+          </div>
+          <div *ngIf="!isLast" class="timeline-line"></div>
+
+          <!-- Carte de la tranche -->
+          <div class="tranche-card">
+            <div class="card-header">
+              <h3>{{ tranche.ordre }}. {{ tranche.titre }}</h3>
+              <span class="badge" [ngClass]="getTimelineClass(tranche.statut)">
+                {{ formatStatut(tranche.statut) }}
+              </span>
+            </div>
+
+            <div class="card-body">
+              <!-- KPI compact -->
+              <div class="amount-details">
+                <div class="kpi-item">
+                  <span class="kpi-label">Montant brut</span>
+                  <strong class="kpi-value">{{ tranche.montantBrut | number:'1.2-2' }} TND</strong>
+                </div>
+                <div class="kpi-item">
+                  <span class="kpi-label">Commission</span>
+                  <strong class="kpi-value">{{ tranche.commissionPlateforme | number:'1.2-2' }} TND</strong>
+                </div>
+                <div class="kpi-item">
+                  <span class="kpi-label">Net freelance</span>
+                  <strong class="kpi-value">{{ tranche.montantNetFreelance | number:'1.2-2' }} TND</strong>
+                </div>
+              </div>
+              
+              <!-- Contrôles de tranche -->
+              <div class="tranche-controls">
+                <div class="control-group">
+                  <label class="switch">
+                    <input type="checkbox" [checked]="tranche.required ?? false" (change)="toggleRequired(tranche.id, tranche.required ?? false)">
+                    <span class="switch-slider"></span>
+                    <span class="switch-label">Requise</span>
+                  </label>
+                  <label class="switch">
+                    <input type="checkbox" [checked]="tranche.finale ?? false" (change)="toggleFinale(tranche.id, tranche.finale ?? false)">
+                    <span class="switch-slider"></span>
+                    <span class="switch-label">Finale</span>
+                  </label>
+                </div>
+                
+                <div class="action-buttons">
+                  <button *ngIf="tranche.livrableAssocieId" 
+                          (click)="voirLivrable(tranche.livrableAssocieId)" 
+                          class="btn-outline">
+                    <fa-icon [icon]="faEye"></fa-icon>
+                    Voir le livrable
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions de paiement -->
+            <div class="card-footer" *ngIf="isActionAvailable(tranche.statut)">
+              <button class="action-button" 
+                      [ngClass]="{'payment-button': tranche.statut === 'EN_ATTENTE_DEPOT' || tranche.statut === 'EN_ATTENTE_PAIEMENT'}"
+                      (click)="handleTrancheAction(tranche)">
+                <fa-icon [icon]="tranche.statut === 'EN_ATTENTE_DEPOT' || tranche.statut === 'EN_ATTENTE_PAIEMENT' ? faCreditCard : faCheckCircle"></fa-icon>
+                <span>{{ getButtonText(tranche.statut) }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -59,7 +202,11 @@
 
     <!-- État vide s'il n'y a aucune tranche -->
     <div *ngIf="missionSummary.tranches.length === 0" class="empty-tranches">
-      <p>Aucune tranche n'a été définie pour cette mission.</p>
+      <div class="empty-content">
+        <fa-icon [icon]="faCreditCard" size="3x"></fa-icon>
+        <h3>Aucune tranche définie</h3>
+        <p>Cette mission n'a pas encore de tranches de paiement définies.</p>
+      </div>
     </div>
 
   </main>
@@ -71,16 +218,16 @@
 
 </div>
 
-<!-- Modal pour ajouter une tranche Ultra Moderne -->
+<!-- Modal pour ajouter une tranche Premium -->
 <div class="modal-overlay" *ngIf="isAddTrancheModalOpen" (click)="closeAddTrancheModal()">
   <div class="modal-content" (click)="$event.stopPropagation()">
     
-    <!-- Header du modal avec logo -->
+    <!-- Header du modal -->
     <div class="modal-header">
       <img src="assets/Logo.png" alt="Promatch Logo" class="modal-logo">
     </div>
 
-    <!-- Progress bar comme dans sign-up -->
+    <!-- Progress bar -->
     <div class="modal-progress">
       <div class="progress-step active">
         <div class="step-icon">
@@ -143,8 +290,8 @@
             <input 
               id="tranche-montant" 
               type="number" 
-              [(ngModel)]="newTranche.montant" 
-              name="montant" 
+              [(ngModel)]="newTranche.montantBrut" 
+              name="montantBrut" 
               placeholder="Ex: 500" 
               required 
               min="0" 
@@ -153,7 +300,7 @@
           </div>
         </div>
 
-        <!-- Navigation buttons comme dans sign-up -->
+        <!-- Navigation buttons -->
         <div class="navigation-buttons">
           <button type="button" class="btn-secondary" (click)="closeAddTrancheModal()">
             Annuler

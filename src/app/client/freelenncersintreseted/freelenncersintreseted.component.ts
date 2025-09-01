@@ -1,21 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import {
   faHeart, faTimes, faSync, faStar, faMapPin,
-  faCheckCircle, faUserTie, faLevelUpAlt, faDollarSign, faHandshake, faChevronDown, faBriefcase, faPlus, faCheck
+  faCheckCircle, faUserTie, faLevelUpAlt, faDollarSign, faHandshake, faChevronDown, faBriefcase, faPlus, faCheck, faCalendarDay
 } from '@fortawesome/free-solid-svg-icons';
 import { catchError, finalize, switchMap, take } from 'rxjs/operators';
 import { EMPTY, of } from 'rxjs';
 
-import { UtilisateurSummaryModel } from '../../models/utilisateur-summary.model';
+import { FreelanceSummary } from '../../models/freelance-summary.model';
 import { SwipeService } from '../../services/swipe.service';
 import { AuthService } from '../../services/auth.service';
 import { Decision } from '../../models/swipe.model';
 import { Mission } from '../../models/mission.model';
+import { MissionCard } from '../../models/mission-card.model';
 import { MissionsService } from '../../services/missions.service';
+import { SidebarStateService } from '../../core/sidebar-state.service';
 
-export interface FreelancerViewModel extends UtilisateurSummaryModel {
+export interface FreelancerViewModel extends FreelanceSummary {
   decision?: 'like' | 'dislike';
 }
 
@@ -26,10 +28,10 @@ export interface FreelancerViewModel extends UtilisateurSummaryModel {
   templateUrl: './freelenncersintreseted.component.html',
   styleUrls: ['./freelenncersintreseted.component.scss']
 })
-export class FreelenncersintresetedComponent implements OnInit {
+export class FreelenncersintresetedComponent implements OnInit, OnDestroy {
   // State
-  clientMissions: Mission[] = [];
-  selectedMission: Mission | null = null;
+  clientMissions: MissionCard[] = [];
+  selectedMission: MissionCard | null = null;
   freelancers: FreelancerViewModel[] = [];
   
   isLoadingMissions = true;
@@ -62,6 +64,7 @@ export class FreelenncersintresetedComponent implements OnInit {
   faBriefcase = faBriefcase;
   faPlus = faPlus;
   faCheck = faCheck;
+  faCalendarDay = faCalendarDay;
 
 
   public get currentFreelancer(): FreelancerViewModel | undefined {
@@ -71,10 +74,12 @@ export class FreelenncersintresetedComponent implements OnInit {
   constructor(
     private swipeService: SwipeService,
     private missionsService: MissionsService,
-    private authService: AuthService
+    private authService: AuthService,
+    private sidebarState: SidebarStateService
   ) {}
 
   ngOnInit(): void {
+    this.sidebarState.setCollapsed(true);
     this.authService.user$.pipe(
       take(1),
       switchMap(user => {
@@ -89,7 +94,7 @@ export class FreelenncersintresetedComponent implements OnInit {
         console.error("Erreur lors du chargement des missions du client", err);
         return EMPTY;
       })
-    ).subscribe(missions => {
+    ).subscribe((missions: MissionCard[]) => {
       this.clientMissions = missions;
       // Optionnel : pré-sélectionner la première mission si elle existe
       if(this.clientMissions.length > 0) {
@@ -97,8 +102,12 @@ export class FreelenncersintresetedComponent implements OnInit {
       }
     });
   }
+
+  ngOnDestroy(): void {
+    this.sidebarState.setCollapsed(false);
+  }
   
-  selectMission(mission: Mission): void {
+  selectMission(mission: MissionCard): void {
     this.selectedMission = mission;
     this.isMissionSelectorOpen = false;
     this.freelancers = []; // Vider la liste précédente
@@ -119,7 +128,7 @@ export class FreelenncersintresetedComponent implements OnInit {
         console.error("Erreur lors du chargement des freelances intéressés:", err);
         return EMPTY;
       })
-    ).subscribe(freelancers => {
+    ).subscribe((freelancers) => {
       this.freelancers = freelancers.reverse();
       this.currentIndex = this.freelancers.length - 1;
     });

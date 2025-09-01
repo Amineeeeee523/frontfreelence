@@ -1,22 +1,45 @@
-<div class="missions-container">
-  <!-- Header Ultra Moderne -->
-  <header class="missions-header">
+<div class="missions-container" [class.blurred]="isDetailOverlayOpen()">
   
-    <button class="create-mission-btn" (click)="openCreateMissionModal()">
+  <!-- === HEADER SECTION === -->
+  <header class="missions-header toolbar">
+    <div class="segmented">
+      <button class="sort-option" 
+              [class.active]="sortBy() === 'date-desc'"
+              (click)="updateSortBy('date-desc')">
+        <span>Plus récentes</span>
+      </button>
+      <button class="sort-option" 
+              [class.active]="sortBy() === 'date-asc'"
+              (click)="updateSortBy('date-asc')">
+        <span>Plus anciennes</span>
+      </button>
+      <button class="sort-option" 
+              [class.active]="sortBy() === 'budget-desc'"
+              (click)="updateSortBy('budget-desc')">
+        <span>Budget élevé</span>
+      </button>
+      <button class="sort-option" 
+              [class.active]="sortBy() === 'budget-asc'"
+              (click)="updateSortBy('budget-asc')">
+        <span>Budget bas</span>
+      </button>
+    </div>
+    
+    <button class="btn--primaryGrad" (click)="openCreateMissionModal()">
       <fa-icon [icon]="faPlus"></fa-icon>
       <span>Créer une nouvelle mission</span>
     </button>
   </header>
 
-  <!-- Contrôles Ultra Modernes -->
+  <!-- === FILTERS SECTION === -->
   <div class="missions-controls">
-    <div class="status-filters">
+    <div class="status-tabs segmented">
       <button *ngFor="let status of statuses" 
               [class.active]="statusFilter() === status" 
               (click)="selectStatus(status)"
-              class="filter-btn">
-        <span class="filter-text">{{ status }}</span>
-        <div class="filter-indicator"></div>
+              class="seg-item">
+        <span>{{ status === 'Tous' ? 'Tous' : (status | statutLabel) }}</span>
+        <span class="count" *ngIf="getStatusCount(status) > 0">{{ getStatusCount(status) }}</span>
       </button>
     </div>
     
@@ -25,31 +48,38 @@
         <fa-icon [icon]="faSearch" class="search-icon"></fa-icon>
         <input type="text" 
                placeholder="Rechercher par titre..." 
-               [(ngModel)]="searchTerm" 
+               [ngModel]="searchTerm()" 
                (ngModelChange)="updateSearchTerm($event)"
                class="search-input">
       </div>
       
-      <div class="sort-box">
-        <select [(ngModel)]="sortBy" (ngModelChange)="updateSortBy($event)" class="sort-select">
-          <option *ngFor="let option of sortOptions" [value]="option.id">
-            {{ option.name }}
-          </option>
-        </select>
-        <fa-icon [icon]="faChevronDown" class="sort-arrow"></fa-icon>
+      <div class="filter-chips">
+        <button class="filter-chip" [class.active]="true">
+          <fa-icon [icon]="faFolder"></fa-icon>
+          <span>Catégorie</span>
+        </button>
+        <button class="filter-chip">
+          <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+          <span>Budget</span>
+        </button>
+        <button class="filter-chip">
+          <fa-icon [icon]="faMapPin"></fa-icon>
+          <span>Gouvernorat</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Liste des Missions Ultra Moderne -->
+  <!-- === MISSIONS GRID === -->
   <div class="missions-list">
-    <!-- État de chargement -->
+    <!-- Loading State -->
     <div *ngIf="isLoading()" class="loading-indicator">
       <div class="spinner"></div>
-      <p>Chargement de vos missions...</p>
+      <h2>Chargement de vos missions...</h2>
+      <p>Nous récupérons vos projets en cours, un instant s'il vous plaît.</p>
     </div>
 
-    <!-- État vide -->
+    <!-- Empty State -->
     <div *ngIf="!isLoading() && filteredMissions().length === 0" class="empty-state">
       <fa-icon [icon]="faFolderOpen" class="empty-icon"></fa-icon>
       <h2>Aucune mission à afficher</h2>
@@ -60,113 +90,157 @@
       </button>
     </div>
 
-    <!-- Cartes de mission -->
-    <div class="mission-card" 
-         *ngFor="let mission of filteredMissions()" 
-         [ngClass]="getStatusClass(mission.statut)"
-         [@cardAnimation]>
+    <!-- Mission Cards -->
+    <div *ngFor="let mission of filteredMissions(); trackBy: trackByMissionId"
+         class="mission-card card"
+         [ngClass]="getCardStatusClass(mission.statut)">
       
-      <!-- En-tête de la carte -->
+      <!-- Card Header -->
       <div class="card-header">
         <div class="mission-title-section">
-          <h3>{{ mission.titre }}</h3>
+          <h3 class="mission-title">{{ mission.titre }}</h3>
           <div class="mission-meta">
-            <span class="mission-category">{{ mission.categorie | titlecase }}</span>
-            <span class="mission-date">{{ mission.datePublication | date: 'dd MMM yyyy' }}</span>
-          </div>
-        </div>
-        <span class="status-pill" [ngClass]="getStatusClass(mission.statut)">
-          {{ mission.statut | titlecase }}
-        </span>
-      </div>
-
-      <!-- Description -->
-      <p class="mission-description">{{ mission.description | slice:0:150 }}{{ mission.description.length > 150 ? '...' : '' }}</p>
-
-      <!-- Informations du freelance si assigné -->
-      <div class="freelance-info" *ngIf="mission.freelance">
-        <div class="freelance-avatar-container">
-          <img [src]="mission.freelance.photoProfilUrl || 'assets/default-avatar.png'" 
-               [alt]="'Avatar de ' + mission.freelance.prenom" 
-               class="freelance-avatar">
-          <div class="online-indicator"></div>
-        </div>
-        <div class="freelance-details">
-          <span class="freelance-name">{{ mission.freelance.prenom }} {{ mission.freelance.nom }}</span>
-          <span class="freelance-type">{{ mission.freelance.typeUtilisateur | titlecase }}</span>
-        </div>
-        <div class="freelance-rating">
-          <fa-icon [icon]="faStar" class="star-icon"></fa-icon>
-          <span>4.8</span>
-        </div>
-      </div>
-
-      <!-- Indicateur de chargement pour les données enrichies -->
-      <div class="enriching-indicator" *ngIf="!mission.freelance && isEnriching()">
-        <div class="mini-spinner"></div>
-        <span>Chargement des détails...</span>
-      </div>
-
-      <!-- Détails de la mission -->
-      <div class="mission-details-grid">
-        <div class="detail-item">
-          <fa-icon [icon]="faCalendarAlt" class="detail-icon"></fa-icon>
-          <div class="detail-content">
-            <span class="detail-label">Deadline</span>
-            <strong class="detail-value">{{ mission.delaiLivraison | date: 'dd/MM/yyyy' }}</strong>
+            <span class="chip chip--neutral">
+              {{ mission.categorie | titlecase }}
+            </span>
+            <span class="chip">
+              <fa-icon [icon]="getStatusIcon(mission.statut)" [ngClass]="{
+                'icon--succ': mission.statut === 'TERMINEE',
+                'icon--info': mission.statut === 'EN_COURS' || mission.statut === 'EN_ATTENTE_VALIDATION',
+                'icon--warn': mission.statut === 'EN_ATTENTE' || mission.statut === 'EXPIREE',
+                'icon--brand': mission.statut === 'PRET_A_CLOTURER'
+              }"></fa-icon>
+              <span>{{ mission.statut | statutLabel }}</span>
+            </span>
           </div>
         </div>
         
-        <div class="detail-item">
-          <fa-icon [icon]="faMoneyBillWave" class="detail-icon"></fa-icon>
-          <div class="detail-content">
-            <span class="detail-label">Budget</span>
-            <strong class="detail-value">{{ mission.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
-          </div>
+        <div class="mission-details">
+          <span class="chip">
+            <fa-icon [icon]="faMoneyBillWave" class="icon icon--succ"></fa-icon>
+            <span>{{ getBudgetDisplay(mission) }}</span>
+          </span>
+          <span class="chip">
+            <fa-icon [icon]="faCalendarAlt" class="icon icon--info"></fa-icon>
+            <span *ngIf="mission.delaiLivraison">
+              {{ mission.delaiLivraison | date:'dd/MM/yyyy' }}
+            </span>
+            <span *ngIf="!mission.delaiLivraison">-</span>
+          </span>
         </div>
       </div>
 
-      <!-- Actions de la carte -->
-      <div class="card-actions">
-        <button class="btn btn-primary" (click)="openLivrablesModal(mission)">
-          <fa-icon [icon]="faBoxOpen" class="btn-icon"></fa-icon>
-          <span>Voir Livrables</span>
-          <span *ngIf="mission.livrablesEnAttente" class="notification-badge">
-            {{mission.livrablesEnAttente}}
+      <!-- Freelance Assignment -->
+      <div class="freelance-info" *ngIf="mission.freelance; else noAssignment">
+        <img [src]="getFreelancePhoto(mission.freelance)" 
+             [alt]="getFreelanceName(mission.freelance)"
+             class="freelance-avatar">
+        <div class="freelance-details">
+          <div class="freelance-name">{{ getFreelanceName(mission.freelance) }}</div>
+          <div class="freelance-badges">
+            <span class="chip">
+               <fa-icon [icon]="faCheckCircle" class="icon icon--succ"></fa-icon>
+              <span>Vérifié</span>
+            </span>
+            <!-- Add other freelance badges here if needed -->
+          </div>
+        </div>
+      </div>
+      
+      <ng-template #noAssignment>
+        <div class="freelance-info">
+          <div class="empty-assignment">
+            <span class="empty-text">Aucun freelance assigné</span>
+            <button class="explore-btn">
+              <fa-icon [icon]="faSearch"></fa-icon>
+              <span>Explorer</span>
+            </button>
+          </div>
+        </div>
+      </ng-template>
+
+      <!-- Progression & Milestones -->
+      <div class="mission-progression">
+        <div class="progress-header">
+          <span class="progress-label">Progression</span>
+          <span class="progress-percentage">{{ getProgressPercentage(mission) }}%</span>
+        </div>
+        
+        <div class="progress">
+          <div class="progress__fill" [style.width.%]="getProgressPercentage(mission)"></div>
+        </div>
+        
+        <div class="milestone-chips">
+          <span class="chip">
+            <fa-icon [icon]="faListCheck" class="icon"></fa-icon>
+            <span>{{ plural(mission.livrablesTotal || 0, 'Livrable', 'Livrables') }}</span>
           </span>
+          <span class="chip">
+            <fa-icon [icon]="faCheckCircle" class="icon--succ"></fa-icon>
+            <span>{{ plural(mission.livrablesValides || 0, 'Validé', 'Validés') }}</span>
+          </span>
+          <span class="chip">
+            <fa-icon [icon]="faInbox" class="icon--warn"></fa-icon>
+            <span>{{ plural(mission.livrablesEnAttente || 0, 'En attente', 'En attente') }}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Card Actions -->
+      <div class="card-actions">
+        <button class="btn btn--outline" (click)="onVoirDetails(mission.id)">
+          <fa-icon [icon]="faEye"></fa-icon>
+          <span>Détails</span>
         </button>
         
-        <button class="btn btn-secondary" (click)="openCreateMissionModal(mission)">
-          <fa-icon [icon]="faEdit" class="btn-icon"></fa-icon>
-          <span>Modifier</span>
+        <button *ngIf="getNextAction(mission) === 'valider'" 
+                class="btn btn--cta"
+                [disabled]="!hasLivrablesEnAttente(mission)"
+                (click)="handleValiderLivrable(mission.livrableIdEnAttente || mission.id, mission)">
+          <fa-icon [icon]="faClipboardCheck"></fa-icon>
+          <span>Valider Livrables</span>
+        </button>
+        
+        <button *ngIf="getNextAction(mission) === 'payer'" 
+                class="btn btn--cta"
+                (click)="onPayerTranche(mission.trancheIdDue || 0)">
+          <fa-icon [icon]="faCreditCard"></fa-icon>
+          <span>Payer la tranche</span>
+        </button>
+        
+        <button *ngIf="getNextAction(mission) === 'cloturer'" 
+                class="btn btn--cta"
+                (click)="onVoirDetails(mission.id)">
+          <fa-icon [icon]="faFlagCheckered"></fa-icon>
+          <span>Gérer la clôture</span>
+        </button>
+        
+        <button *ngIf="getNextAction(mission) === 'booster'" 
+                class="btn btn--cta"
+                (click)="onBoosterMission(mission.id)">
+          <fa-icon [icon]="faStar"></fa-icon>
+          <span>Booster mission</span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Indicateur de chargement progressif -->
+  <!-- Enriching Progress Indicator -->
   <div *ngIf="isEnriching() && !isLoading() && filteredMissions().length > 0" class="enriching-progress">
     <div class="progress-indicator">
       <div class="progress-spinner"></div>
-      <p>Enrichissement des données en cours...</p>
+      <p>Mise à jour...</p>
     </div>
   </div>
 </div>
 
-<!-- ================================================================= -->
-<!-- ==            ✨ MODAL BACKDROP & CONTAINER ✨                == -->
-<!-- ================================================================= -->
+<!-- === MODAL BACKDROP === -->
 <div class="modal-backdrop" *ngIf="isCreateModalOpen() || isLivrablesModalOpen()">
   
-  <!-- ================================================================= -->
-  <!-- ==         ✨ MODAL DE CRÉATION/ÉDITION DE MISSION ✨          == -->
-  <!-- ================================================================= -->
+  <!-- Create/Edit Mission Modal -->
   <div class="modal-panel" *ngIf="isCreateModalOpen()" (click)="$event.stopPropagation()">
     <header class="modal-header">
-      <div class="modal-title-section">
-        <h2>{{ isEditing() ? 'Modifier la mission' : 'Créer une nouvelle mission' }}</h2>
-        <p class="modal-subtitle">{{ isEditing() ? 'Mettez à jour les détails de votre mission' : 'Décrivez votre projet pour attirer les meilleurs freelances' }}</p>
-      </div>
+      <h2>{{ isEditing() ? 'Modifier la mission' : 'Créer une nouvelle mission' }}</h2>
       <button class="close-btn" (click)="closeCreateMissionModal()">
         <fa-icon [icon]="faTimes"></fa-icon>
       </button>
@@ -194,7 +268,7 @@
             <fa-icon [icon]="faEdit" class="label-icon"></fa-icon>
             Description détaillée
           </label>
-          <textarea rows="6" 
+          <textarea rows="5" 
                     formControlName="description" 
                     placeholder="Décrivez votre projet, les fonctionnalités attendues, les technologies souhaitées..."
                     class="form-textarea"></textarea>
@@ -207,12 +281,12 @@
           <div class="form-group half">
             <label class="form-label">
               <fa-icon [icon]="faMoneyBillWave" class="label-icon"></fa-icon>
-              Budget (TND)
+              Budget
             </label>
             <input type="number" 
                    formControlName="budget" 
                    min="0" 
-                   placeholder="Montant en dinars" 
+                   placeholder="Montant en TND" 
                    class="form-input" />
             <div class="error" *ngIf="missionForm.get('budget')?.invalid && missionForm.get('budget')?.touched">
               Budget requis.
@@ -222,7 +296,7 @@
           <div class="form-group half">
             <label class="form-label">
               <fa-icon [icon]="faCalendarAlt" class="label-icon"></fa-icon>
-              Date limite de livraison
+              Date de livraison
             </label>
             <input type="date" 
                    formControlName="delaiLivraison" 
@@ -232,138 +306,139 @@
             </div>
           </div>
         </div>
-
+        
         <div class="form-row">
-          <div class="form-group half">
-            <label class="form-label">
-              <fa-icon [icon]="faFolder" class="label-icon"></fa-icon>
-              Catégorie
-            </label>
-            <select formControlName="categorie" class="form-select">
-              <option value="">Sélectionnez une catégorie</option>
-              <option *ngFor="let cat of categories" [value]="cat">{{ cat | titlecase }}</option>
-            </select>
-          </div>
-          
-          <div class="form-group half">
-            <label class="form-label">
-              <fa-icon [icon]="faCode" class="label-icon"></fa-icon>
-              Compétences requises
-            </label>
-            <input type="text" 
-                   formControlName="competences" 
-                   placeholder="Angular, UX, Node.js..." 
-                   class="form-input" />
-          </div>
+            <div class="form-group half">
+              <label class="form-label">Catégorie</label>
+              <select formControlName="categorie" class="form-select">
+                <option value="">Sélectionnez une catégorie</option>
+                <option *ngFor="let cat of categories" [value]="cat">{{ cat | titlecase }}</option>
+              </select>
+            </div>
+            <div class="form-group half">
+                <label class="form-label">Compétences requises</label>
+                <input type="text" 
+                       formControlName="competences" 
+                       placeholder="Angular, UX, Node.js..." 
+                       class="form-input" />
+            </div>
         </div>
+
+        <!-- Add other form fields as needed based on the new design -->
 
         <button type="submit" 
                 class="submit-btn" 
                 [disabled]="missionForm.invalid || isSubmitting()">
-          <fa-icon *ngIf="isSubmitting()" [icon]="faSpinner" class="fa-spin"></fa-icon>
+          <fa-icon *ngIf="isSubmitting()" [icon]="faSpinner" spin></fa-icon>
           <fa-icon *ngIf="!isSubmitting()" [icon]="faSave"></fa-icon>
-          <span>{{ isEditing() ? 'Mettre à jour' : 'Créer la mission' }}</span>
+          <span>{{ isEditing() ? 'Mettre à jour la mission' : 'Créer la mission' }}</span>
         </button>
       </form>
     </div>
   </div>
 
-  <!-- ================================================================= -->
-  <!-- ==         ✨ MODAL DES LIVRABLES ✨                           == -->
-  <!-- ================================================================= -->
+  <!-- Livrables Modal -->
   <div class="modal-panel" *ngIf="isLivrablesModalOpen() && selectedMissionForModal()" (click)="$event.stopPropagation()">
     <header class="modal-header">
-      <div class="modal-title-section">
         <h2>Livrables pour "{{ selectedMissionForModal()?.titre }}"</h2>
-        <p class="modal-subtitle">Consultez et validez les livrables soumis par votre freelance</p>
-      </div>
       <button class="close-btn" (click)="closeLivrablesModal()">
         <fa-icon [icon]="faTimes"></fa-icon>
       </button>
     </header>
     
-    <div class="modal-body">
-      <!-- État de chargement -->
+    <div class="modal-content">
+      <!-- Loading State -->
       <div *ngIf="isLoadingLivrables()" class="loading-indicator">
         <div class="spinner"></div>
         <p>Chargement des livrables...</p>
       </div>
 
-      <!-- État vide -->
+      <!-- Empty State -->
       <div *ngIf="!isLoadingLivrables() && livrablesForMission().length === 0" class="empty-state">
         <fa-icon [icon]="faBoxOpen" class="empty-icon"></fa-icon>
         <h3>Aucun livrable soumis</h3>
-        <p>Aucun livrable n'a encore été soumis pour cette mission.</p>
+        <p>Le freelance n'a encore soumis aucun livrable pour cette mission.</p>
       </div>
 
-      <!-- Liste des livrables -->
-      <div class="livrable-item" *ngFor="let livrable of livrablesForMission()">
-        <div class="livrable-details">
-          <div class="livrable-header">
-            <div class="livrable-title">{{ livrable.titre }}</div>
-            <div class="livrable-date">
-              <fa-icon [icon]="faCalendarAlt" class="date-icon"></fa-icon>
-              Soumis le {{ livrable.dateEnvoi | date:'fullDate' }}
-            </div>
-          </div>
-          
-          <p class="livrable-description">{{livrable.description}}</p>
-          
-          <!-- Fichiers attachés -->
-          <div class="livrable-files" *ngIf="livrable.cheminsFichiers?.length">
-            <h4 class="files-title">
-              <fa-icon [icon]="faDownload" class="title-icon"></fa-icon>
-              Fichiers attachés
-            </h4>
-            <div class="file-list">
-              <div class="file-item" *ngFor="let fichier of livrable.cheminsFichiers; let i = index">
-                <a [href]="fichier" target="_blank" class="file-link">
-                  <fa-icon [icon]="faDownload" class="file-icon"></fa-icon>
-                  <span>Fichier {{ i + 1 }}</span>
-                </a>
+      <!-- Livrables List -->
+      <div *ngFor="let livrable of livrablesForMission()">
+        <div class="livrable-item">
+            <div class="livrable-details">
+              <div class="livrable-header">
+                <div class="livrable-title">{{ livrable.titre }}</div>
+                <div class="livrable-date">
+                  <fa-icon [icon]="faCalendarAlt" class="date-icon"></fa-icon>
+                  Soumis le {{ livrable.dateEnvoi | date:'dd MMM yyyy' }}
+                </div>
+              </div>
+              
+              <p class="livrable-description">{{livrable.description}}</p>
+              
+              <!-- Fichiers attachés -->
+              <div class="livrable-files" *ngIf="livrable.cheminsFichiers?.length">
+                <h4 class="files-title">
+                  <fa-icon [icon]="faDownload" class="title-icon"></fa-icon>
+                  Fichiers attachés
+                </h4>
+                <div class="file-list">
+                  <div class="file-item" *ngFor="let fichier of livrable.cheminsFichiers; let i = index">
+                    <a [href]="fichier" target="_blank" class="file-link" download>
+                      <fa-icon [icon]="faDownload" class="file-icon"></fa-icon>
+                      <span>Fichier {{ i + 1 }}</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Liens externes -->
+              <div class="livrable-links" *ngIf="livrable.liensExternes?.length">
+                <h4 class="links-title">
+                  <fa-icon [icon]="faLink" class="title-icon"></fa-icon>
+                  Liens externes
+                </h4>
+                <div class="link-list">
+                  <div class="link-item" *ngFor="let lien of livrable.liensExternes">
+                    <a [href]="lien" target="_blank" class="external-link">
+                      <fa-icon [icon]="faLink" class="link-icon"></fa-icon>
+                      <span>{{ lien }}</span>
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <!-- Liens externes -->
-          <div class="livrable-links" *ngIf="livrable.liensExternes?.length">
-            <h4 class="links-title">
-              <fa-icon [icon]="faLink" class="title-icon"></fa-icon>
-              Liens externes
-            </h4>
-            <div class="link-list">
-              <div class="link-item" *ngFor="let lien of livrable.liensExternes">
-                <a [href]="lien" target="_blank" class="external-link">
-                  <fa-icon [icon]="faLink" class="link-icon"></fa-icon>
-                  <span>{{ lien }}</span>
-                </a>
-              </div>
+                    
+            <div class="livrable-actions">
+              <ng-container *ngIf="livrable.status === 'EN_ATTENTE'">
+                <button type="button" class="action-btn validate" 
+                        (click)="handleLivrableAction(livrable.id, 'valider', livrable.missionId)"
+                        title="Valider le livrable">
+                  <fa-icon [icon]="faCheck"></fa-icon>
+                </button>
+                <button type="button" class="action-btn reject" 
+                        (click)="handleLivrableAction(livrable.id, 'rejeter', livrable.missionId)"
+                        title="Rejeter le livrable">
+                  <fa-icon [icon]="faTimes"></fa-icon>
+                </button>
+              </ng-container>
             </div>
           </div>
-        </div>
-        
-        <div class="livrable-status">
-          <span class="status-pill" [ngClass]="getLivrableStatusClass(livrable.status)">
-            {{livrable.status | titlecase}}
-          </span>
-        </div>
-        
-        <div class="livrable-actions">
-          <ng-container *ngIf="livrable.status === 'EN_ATTENTE'">
-            <button class="action-btn validate" 
-                    (click)="handleLivrableAction(livrable.id, 'valider', livrable.missionId)"
-                    title="Valider le livrable">
-              <fa-icon [icon]="faCheck"></fa-icon>
-            </button>
-            <button class="action-btn reject" 
-                    (click)="handleLivrableAction(livrable.id, 'rejeter', livrable.missionId)"
-                    title="Rejeter le livrable">
-              <fa-icon [icon]="faTimes"></fa-icon>
-            </button>
-          </ng-container>
-        </div>
       </div>
     </div>
   </div>
+</div>
 
+<!-- Detail Overlay -->
+<div class="detail-overlay-backdrop" *ngIf="isDetailOverlayOpen()" (click)="closeMissionDetail()">
+  <div class="detail-overlay-content" (click)="$event.stopPropagation()">
+    <div class="detail-overlay-header">
+      <button class="close-detail-btn" (click)="closeMissionDetail()">
+        <fa-icon [icon]="faTimes"></fa-icon>
+      </button>
+    </div>
+    <div class="detail-overlay-body">
+      <app-mission-detail 
+        [missionId]="selectedMissionForDetail()?.id || 0">
+      </app-mission-detail>
+    </div>
+  </div>
 </div>

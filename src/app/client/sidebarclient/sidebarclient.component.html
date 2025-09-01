@@ -1,26 +1,47 @@
-<div class="sidebar" [class.collapsed]="isCollapsed$ | async">
+<nav class="sidebar" aria-label="Navigation latérale" [class.collapsed]="isCollapsed$ | async">
   <div class="sidebar-header">
     <img src="assets/Logo.png" alt="Logo Forsa" class="logo" (click)="toggleSidebar()">
   </div>
   
-  <div class="sidebar-separator"></div>
-
-  <nav class="navigation">
-    <ul>
-      <li><a routerLink="/client/dashboard" [class.active]="isLinkActive('/client/dashboard')"><fa-icon [icon]="faTachometerAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Tableau de bord</span></a></li>
-      <li><a routerLink="/client/mes-missions" [class.active]="isLinkActive('/client/mes-missions')"><fa-icon [icon]="faFolder"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Mes missions</span></a></li>
-      <li><a routerLink="/client/freelances-interesses" [class.active]="isLinkActive('/client/freelances-interesses')"><fa-icon [icon]="faUsers"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Freelances intéressés</span></a></li>
-      <li><a routerLink="/client/explorer-freelances" [class.active]="isLinkActive('/client/explorer-freelances')"><fa-icon [icon]="faSearch"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Explorer les freelances</span></a></li>
-      <li><a routerLink="/client/messagerie" [class.active]="isLinkActive('/client/messagerie')"><fa-icon [icon]="faCommentDots"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Messagerie</span></a></li>
-    
-      <li><a routerLink="/client/paiements" [class.active]="isLinkActive('/client/paiements')"><fa-icon [icon]="faCreditCard"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Paiements</span></a></li>
-    </ul>
-  </nav>
-
-  <div class="sidebar-footer">
-    <ul>
-        <li><a routerLink="/client/aide" [class.active]="isLinkActive('/client/aide')"><fa-icon [icon]="faQuestionCircle"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Support / Aide</span></a></li>
-        <li><a (click)="logout()"><fa-icon [icon]="faSignOutAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Déconnexion</span></a></li>
-    </ul>
+  <div class="side-group">
+    <a routerLink="/client/dashboard" class="side-item" [class.active]="isLinkActive('/client/dashboard')" [attr.aria-current]="isLinkActive('/client/dashboard') ? 'page' : null">
+      <fa-icon [icon]="faGauge" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Tableau de bord</span>
+    </a>
+    <a routerLink="/client/mes-missions" class="side-item" [class.active]="isLinkActive('/client/mes-missions')" [attr.aria-current]="isLinkActive('/client/mes-missions') ? 'page' : null">
+      <fa-icon [icon]="faFolder" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Mes missions</span>
+      <span class="count" *ngIf="!(isCollapsed$ | async)">3</span>
+    </a>
+    <a routerLink="/client/explorer-freelances" class="side-item" [class.active]="isLinkActive('/client/explorer-freelances')" [attr.aria-current]="isLinkActive('/client/explorer-freelances') ? 'page' : null">
+      <fa-icon [icon]="faSearch" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Explorer les freelances</span>
+    </a>
+    <a routerLink="/client/freelances-interesses" class="side-item" [class.active]="isLinkActive('/client/freelances-interesses')" [attr.aria-current]="isLinkActive('/client/freelances-interesses') ? 'page' : null">
+      <fa-icon [icon]="faUsers" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Freelances intéressés</span>
+      <span class="count" *ngIf="!(isCollapsed$ | async)">1</span>
+    </a>
+    <a routerLink="/client/messagerie" class="side-item" [class.active]="isLinkActive('/client/messagerie')" [attr.aria-current]="isLinkActive('/client/messagerie') ? 'page' : null">
+      <fa-icon [icon]="faCommentDots" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Messagerie</span>
+    </a>
+    <a routerLink="/client/paiements" class="side-item" [class.active]="isLinkActive('/client/paiements')" [attr.aria-current]="isLinkActive('/client/paiements') ? 'page' : null">
+      <fa-icon [icon]="faCreditCard" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Paiements</span>
+    </a>
   </div>
-</div>
+
+  <div class="side-divider"></div>
+
+  <div class="footer side-group">
+    <a routerLink="/client/aide" class="side-item" [class.active]="isLinkActive('/client/aide')" [attr.aria-current]="isLinkActive('/client/aide') ? 'page' : null">
+      <fa-icon [icon]="faQuestionCircle" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Support / Aide</span>
+    </a>
+    <a (click)="logout()" class="side-item">
+      <fa-icon [icon]="faRightFromBracket" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Déconnexion</span>
+    </a>
+  </div>
+</nav>

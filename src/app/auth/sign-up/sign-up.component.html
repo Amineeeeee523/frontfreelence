@@ -28,10 +28,18 @@
           <svg *ngIf="currentStep <= 2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
           <svg *ngIf="currentStep > 2" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
         </div>
-        <span>Métier</span>
+        <span>Profil</span>
       </div>
       <div class="step-connector" [class.active]="currentStep >= 3"></div>
-      <div class="step" [class.active]="currentStep >= 3">
+      <div class="step" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
+        <div class="step-icon">
+          <svg *ngIf="currentStep <= 3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
+          <svg *ngIf="currentStep > 3" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <span>Métier</span>
+      </div>
+      <div class="step-connector" [class.active]="currentStep >= 4"></div>
+      <div class="step" [class.active]="currentStep >= 4">
         <div class="step-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9l-6 6-6-6"/></svg>
         </div>
@@ -78,11 +86,82 @@
         </div>
       </div>
 
-      <!-- Étape 1: Informations personnelles -->
+      <!-- Étape 1: Informations de base -->
       <div *ngIf="currentStep === 1" formGroupName="infosPersonnelles" [@slideInOut] class="form-step">
         <div class="step-header">
-          <h2 class="title">Informations personnelles</h2>
-          <p class="subtitle">Créez votre compte pour continuer.</p>
+          <h2 class="title">Informations de base</h2>
+          <p class="subtitle">Créez votre compte avec les informations essentielles.</p>
+        </div>
+
+        <div class="form-grid">
+          <div class="input-group">
+            <label class="input-label">Prénom</label>
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input type="text" formControlName="prenom" placeholder="Votre prénom">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Nom</label>
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input type="text" formControlName="nom" placeholder="Votre nom">
+            </div>
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">Adresse e-mail</label>
+          <div class="input-field">
+            <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg></span>
+            <input type="email" formControlName="email" placeholder="votre.email@exemple.com">
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="input-group">
+            <label class="input-label optional">LinkedIn</label>
+            <div class="input-field brand-field">
+              <span class="input-icon brand linkedin" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452H17.21v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.447-2.136 2.943v5.663H9.005V9h3.111v1.561h.045c.434-.82 1.494-1.686 3.073-1.686 3.29 0 3.897 2.165 3.897 4.985v6.592zM5.337 7.433a1.804 1.804 0 1 1 0-3.608 1.804 1.804 0 0 1 0 3.608zM6.78 20.452H3.893V9H6.78v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.226.792 24 1.771 24h20.451C23.2 24 24 23.226 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              </span>
+              <input type="url" formControlName="linkedinUrl" placeholder="https://www.linkedin.com/in/votre-profil">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label optional">GitHub</label>
+            <div class="input-field brand-field">
+              <span class="input-icon brand github" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.73.5.77 5.46.77 11.74c0 4.93 3.19 9.11 7.62 10.59.56.1.77-.24.77-.54 0-.27-.01-1.16-.02-2.1-3.1.67-3.76-1.32-3.76-1.32-.51-1.29-1.25-1.63-1.25-1.63-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1 .1.68-.77 1.86-1.2.1-.73.39-1.22.72-1.5-2.48-.28-5.1-1.24-5.1-5.54 0-1.22.44-2.22 1.16-3-.12-.29-.5-1.46.11-3.04 0 0 .94-.3 3.08 1.15a10.7 10.7 0 0 1 2.8-.38c.95 0 1.9.13 2.8.38 2.14-1.45 3.08-1.15 3.08-1.15.61 1.58.24 2.75.12 3.04.72.78 1.16 1.78 1.16 3 0 4.31-2.62 5.26-5.11 5.54.4.35.76 1.03.76 2.07 0 1.49-.01 2.69-.01 3.06 0 .3.21.65.78.54 4.42-1.49 7.61-5.66 7.61-10.59C23.23 5.46 18.27.5 12 .5z"/></svg>
+              </span>
+              <input type="url" formControlName="githubUrl" placeholder="https://github.com/votre-compte">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="input-group">
+            <label class="input-label">Mot de passe</label>
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
+              <input type="password" formControlName="password" placeholder="Minimum 8 caractères">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Confirmer le mot de passe</label>
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
+              <input type="password" formControlName="confirmPassword" placeholder="Confirmez votre mot de passe">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Étape 2: Profil et localisation -->
+      <div *ngIf="currentStep === 2" formGroupName="infosPersonnelles" [@slideInOut] class="form-step">
+        <div class="step-header">
+          <h2 class="title">Profil et localisation</h2>
+          <p class="subtitle">Complétez votre profil avec vos informations personnelles.</p>
         </div>
 
         <div class="avatar-upload">
@@ -96,49 +175,74 @@
           <input id="file-upload" type="file" (change)="onFileSelected($event)" accept="image/*">
         </div>
 
-        <div class="form-grid">
-          <div class="input-group">
-            <div class="input-field">
-              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-              <input type="text" formControlName="prenom" placeholder="Prénom">
-            </div>
-          </div>
-          <div class="input-group">
-            <div class="input-field">
-              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-              <input type="text" formControlName="nom" placeholder="Nom">
-            </div>
-          </div>
-        </div>
         <div class="input-group">
+          <label class="input-label optional">Numéro de téléphone</label>
           <div class="input-field">
-            <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg></span>
-            <input type="email" formControlName="email" placeholder="Adresse e-mail">
+            <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+            <input type="tel" formControlName="numeroTelephone" placeholder="Numéro de téléphone (8 chiffres)">
           </div>
         </div>
+
         <div class="form-grid">
           <div class="input-group">
+            <label class="input-label">Ville</label>
             <div class="input-field">
-              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
-              <input type="password" formControlName="password" placeholder="Mot de passe">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+              <input type="text" formControlName="localisation" placeholder="Ex: Sousse">
             </div>
           </div>
           <div class="input-group">
+            <label class="input-label">Gouvernorat</label>
             <div class="input-field">
-              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
-              <input type="password" formControlName="confirmPassword" placeholder="Confirmer le mot de passe">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
+              <select formControlName="gouvernorat">
+                <option value="">Sélectionnez un gouvernorat</option>
+                <option *ngFor="let gov of gouvernorats" [value]="gov">{{ gov.replace('_', ' ') | titlecase }}</option>
+              </select>
             </div>
+          </div>
+        </div>
+        
+        <div class="input-group">
+          <label class="input-label">Langue préférée</label>
+          <div class="input-field">
+            <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6 6 6-6"/><path d="M12 2v12"/><path d="M2 12h20"/></svg></span>
+            <select formControlName="languePref">
+              <option [value]="Langue.FR">Français (FR)</option>
+              <option [value]="Langue.AR">Arabe (AR)</option>
+              <option [value]="Langue.EN">Anglais (EN)</option>
+            </select>
           </div>
         </div>
       </div>
       
-      <!-- Étape 2: Détails spécifiques -->
-      <div *ngIf="currentStep === 2" [@slideInOut] class="form-step">
+      <!-- Étape 3: Compétences & Catégories (Freelance) / Entreprise (Client) -->
+      <div *ngIf="currentStep === 3" [@slideInOut] class="form-step">
         <!-- Formulaire Freelance -->
         <div *ngIf="signUpForm.get('typeUtilisateur')?.value === TypeUtilisateur.FREELANCE" formGroupName="detailsFreelance">
           <div class="step-header">
             <h2 class="title">Profil Freelance</h2>
             <p class="subtitle">Aidez-nous à comprendre votre expertise.</p>
+          </div>
+          
+          <div class="input-group">
+            <label class="input-label">Titre de profil</label>
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <input type="text" formControlName="titreProfil" placeholder="Ex: Développeur Full-Stack Senior">
+            </div>
+          </div>
+          <div class="input-group">
+            <label class="input-label">Compétences (au moins 1)</label>
+            <div class="input-field">
+              <input type="text" placeholder="Ajouter une compétence et appuyer Entrée" (keydown.enter)="$event.preventDefault(); addControl('detailsFreelance','competences',$event)">
+            </div>
+            <div class="chip-selection">
+              <span class="recap-chip" *ngFor="let c of getArray('detailsFreelance','competences').controls; let i = index">
+                {{ c.value }}
+                <button type="button" (click)="removeControl('detailsFreelance','competences', i)" style="margin-left:6px;background:transparent;border:none;color:white;cursor:pointer">×</button>
+              </span>
+            </div>
           </div>
           <div class="input-group">
             <label class="input-label">Catégories de missions</label>
@@ -149,25 +253,57 @@
               </label>
             </div>
           </div>
+
+          <div class="input-group" *ngIf="getArray('detailsFreelance', 'categories').value.length">
+            <label class="input-label">Compétences liées</label>
+            <div class="chip-selection">
+              <ng-container *ngIf="!isLoadingCompetences; else loadingSkills">
+                <label *ngFor="let skill of availableCompetences" class="chip" [class.selected]="getArray('detailsFreelance','competences').value.includes(skill)">
+                  <input type="checkbox" [value]="skill" (change)="onCheckboxChange('detailsFreelance','competences',$event)">
+                  {{ skill }}
+                </label>
+              </ng-container>
+              <ng-template #loadingSkills>
+                <span class="recap-chip">Chargement…</span>
+              </ng-template>
+            </div>
+          </div>
           <div class="form-grid">
             <div class="input-group">
-              <label class="input-label">Tarif Horaire (€)</label>
+              <label class="input-label">Tarif Horaire (TND)</label>
               <div class="input-field">
-                <span class="input-icon">€</span>
-                <input type="number" formControlName="tarifHoraire" placeholder="50">
+                <span class="input-icon">TND</span>
+                <input type="number" formControlName="tarifHoraire" placeholder="150" min="0" step="0.5">
+              </div>
+            </div>
+            <div class="input-group">
+              <label class="input-label">Tarif Journalier (TND)</label>
+              <div class="input-field">
+                <span class="input-icon">TND</span>
+                <input type="number" formControlName="tarifJournalier" placeholder="1200" min="0" step="0.5">
               </div>
             </div>
             <div class="input-group">
               <label class="input-label">Niveau d'expérience</label>
               <div class="input-field">
+                <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></span>
                 <select formControlName="niveauExperience">
                   <option *ngFor="let niveau of [NiveauExperience.DEBUTANT, NiveauExperience.INTERMEDIAIRE, NiveauExperience.EXPERT]" [value]="niveau">{{ niveau | titlecase }}</option>
                 </select>
               </div>
             </div>
+            <div class="input-group">
+              <label class="input-label">Disponibilité</label>
+              <div class="input-field">
+                <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg></span>
+                <select formControlName="disponibilite">
+                  <option *ngFor="let d of [Disponibilite.TEMPS_PLEIN, Disponibilite.TEMPS_PARTIEL, Disponibilite.PONCTUEL, Disponibilite.INDISPONIBLE]" [value]="d">{{ d.replace('_',' ') | titlecase }}</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="input-group">
-              <label class="input-label">Bio</label>
+              <label class="input-label optional">Bio</label>
               <textarea formControlName="bio" rows="3" placeholder="Présentez-vous en quelques mots..."></textarea>
           </div>
         </div>
@@ -185,7 +321,7 @@
               </div>
             </div>
             <div class="input-group">
-              <label class="input-label">Site web (optionnel)</label>
+              <label class="input-label optional">Site web</label>
               <div class="input-field">
                 <input type="url" formControlName="siteEntreprise" placeholder="https://www.acme.com">
               </div>
@@ -195,14 +331,33 @@
             <label class="input-label">Parlez-nous de votre projet ou de vous</label>
             <textarea formControlName="descriptionEntreprise" rows="4" placeholder="Décrivez vos besoins, votre projet ou votre parcours..."></textarea>
           </div>
+          <div class="input-group">
+            <label class="input-label">Localisation</label>
+            <div class="input-field">
+              <span class="input-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
+              <input type="text" formControlName="localisation" placeholder="Ex: Tunis">
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Étape 3: Récapitulatif -->
-      <div *ngIf="currentStep === 3" [@slideInOut] class="form-step">
+      <!-- Étape 4: Portfolio (Freelance) / Récapitulatif (Client) -->
+      <div *ngIf="currentStep === 4" [@slideInOut] class="form-step">
         <div class="step-header">
           <h2 class="title">Prêt à commencer ?</h2>
           <p class="subtitle">Vérifiez vos informations avant de finaliser.</p>
+        </div>
+        <div *ngIf="getControl('typeUtilisateur').value === TypeUtilisateur.FREELANCE" class="input-group" formGroupName="detailsFreelance">
+          <label class="input-label optional">Portfolio (URLs)</label>
+          <div class="input-field">
+            <input type="url" placeholder="https://mon-portfolio.com" (keydown.enter)="$event.preventDefault(); addControl('detailsFreelance','portfolioUrls',$event)">
+          </div>
+          <div class="chip-selection">
+            <span class="recap-chip" *ngFor="let p of getArray('detailsFreelance','portfolioUrls').controls; let i = index">
+              {{ p.value }}
+              <button type="button" (click)="removeControl('detailsFreelance','portfolioUrls', i)" style="margin-left:6px;background:transparent;border:none;color:white;cursor:pointer">×</button>
+            </span>
+          </div>
         </div>
         <div class="recap-container">
             <!-- Avatar -->
@@ -233,7 +388,8 @@
                   <div class="recap-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 16V7a2 2 0 00-2-2H6a2 2 0 00-2 2v9m16 0h2m-2 0v2m-2-2v-2m-12 4h12m-12 0v2m-2-2v-2m2-12h.01M6 3h.01M18 3h.01M4 21h16"/></svg></div>
                   <h3>Profil Freelance</h3>
                 </div>
-                <div *ngIf="detailsFreelanceGroup.value.tarifHoraire" class="recap-item"><span>Tarif horaire</span> <strong>{{ detailsFreelanceGroup.value.tarifHoraire }} €</strong></div>
+                <div *ngIf="detailsFreelanceGroup.value.titreProfil" class="recap-item"><span>Titre de profil</span> <strong>{{ detailsFreelanceGroup.value.titreProfil }}</strong></div>
+                <div *ngIf="detailsFreelanceGroup.value.tarifHoraire" class="recap-item"><span>Tarif horaire</span> <strong>{{ detailsFreelanceGroup.value.tarifHoraire }} TND</strong></div>
                 <div *ngIf="detailsFreelanceGroup.value.niveauExperience" class="recap-item"><span>Expérience</span> <strong>{{ detailsFreelanceGroup.value.niveauExperience | titlecase }}</strong></div>
                 <div *ngIf="getArray('detailsFreelance', 'categories').value.length" class="recap-item recap-item-list"><span>Catégories</span> 
                     <div class="chip-list">
@@ -262,8 +418,8 @@
       <!-- Navigation -->
       <div class="navigation-buttons">
         <button type="button" *ngIf="currentStep > 0" (click)="prevStep()" class="btn-secondary">Précédent</button>
-        <button type="button" *ngIf="currentStep < 3" (click)="nextStep()" [disabled]="!isStepValid(currentStep)" class="btn-primary">Suivant</button>
-        <button type="submit" *ngIf="currentStep === 3" [disabled]="signUpForm.invalid" class="btn-primary">Créer mon compte</button>
+        <button type="button" *ngIf="currentStep < 4" (click)="nextStep()" [disabled]="!isStepValid(currentStep)" class="btn-primary">Suivant</button>
+        <button type="submit" *ngIf="currentStep === 4" [disabled]="!isStepValid(3) || isUploading" class="btn-primary">Créer mon compte</button>
       </div>
 
       <div class="auth-link">

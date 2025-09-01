@@ -189,7 +189,9 @@ export class MessageriedclientComponent implements OnInit, OnDestroy {
 
   handleMessagePage(page: Page<ChatMessage>, isLoadMore: boolean): void {
     this.totalPages = page.totalPages;
-    const messages = page.content.reverse().map(m => ({ ...m, status: MessageStatus.SENT }));
+    const messages = page.content
+      .map(m => ({ ...m, status: MessageStatus.SENT }))
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     if (isLoadMore) {
       const currentScrollHeight = this.messageContainer.nativeElement.scrollHeight;
@@ -227,6 +229,7 @@ export class MessageriedclientComponent implements OnInit, OnDestroy {
 
     if (lastGroup && lastGroup.date === dateKey) {
       lastGroup.messages.push(message);
+      lastGroup.messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
     } else {
       this.messageGroups.push({ date: dateKey, messages: [message] });
     }
@@ -236,12 +239,15 @@ export class MessageriedclientComponent implements OnInit, OnDestroy {
   }
 
   private groupMessagesByDate(messages: ChatMessage[]): MessageGroup[] {
-    return messages.reduce((groups, msg) => {
+    const groups = messages.reduce((groups, msg) => {
       const dateKey = this.formatDateSeparator(new Date(msg.timestamp));
       let group = groups.find(g => g.date === dateKey);
       if (group) group.messages.push(msg); else groups.push({ date: dateKey, messages: [msg] });
       return groups;
     }, [] as MessageGroup[]);
+    // Ensure each group's messages are chronologically sorted
+    groups.forEach(g => g.messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+    return groups;
   }
 
   private mergeMessageGroups(newGroups: MessageGroup[], existing: MessageGroup[]): MessageGroup[] {
@@ -253,7 +259,8 @@ export class MessageriedclientComponent implements OnInit, OnDestroy {
     const firstOfOld = existing[0];
 
     if (lastOfNew.date === firstOfOld.date) {
-      lastOfNew.messages.push(...firstOfOld.messages);
+      lastOfNew.messages = [...lastOfNew.messages, ...firstOfOld.messages]
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
       return [...merged, ...existing.slice(1)];
     }
     return [...merged, ...existing];
@@ -313,7 +320,17 @@ export class MessageriedclientComponent implements OnInit, OnDestroy {
   isConsecutiveMessage(messages: ChatMessage[], index: number, prev: boolean) {
     const current = messages[index];
     const other = prev ? messages[index - 1] : messages[index + 1];
-    return other && current.senderId === other.senderId;
+    if (!other) return false;
+
+    const sameSender = current.senderId === other.senderId;
+    if (!sameSender) return false;
+
+    const currentTs = new Date(current.timestamp).getTime();
+    const otherTs = new Date(other.timestamp).getTime();
+    const diffMs = Math.abs(currentTs - otherTs);
+    const thresholdMs = 5 * 60 * 1000; // 5 minutes
+
+    return diffMs <= thresholdMs;
   }
 
   onScroll(event: Event) {

@@ -1,0 +1,68 @@
+<div class="card-content">
+  <div class="freelancer-header">
+    <div class="freelancer-avatar">
+      <img [src]="photoUrl" alt="Photo de {{ freelancer.prenom }}" draggable="false">
+    </div>
+    <h3 class="freelancer-name">{{ freelancer.prenom }} {{ freelancer.nom }}</h3>
+    <div class="freelancer-title" *ngIf="freelancer.titreProfil">{{ freelancer.titreProfil }}</div>
+
+    <div class="freelancer-location" *ngIf="displayLocation">
+      <fa-icon [icon]="faMapMarkerAlt"></fa-icon>
+      <span>{{ displayLocation }}</span>
+    </div>
+
+    <div class="badge-principal" *ngIf="freelancer.badgePrincipal">
+      <fa-icon [icon]="faCheckCircle"></fa-icon>
+      {{ freelancer.badgePrincipal }}
+    </div>
+
+    <div class="verified-chip" *ngIf="isVerified">
+      <fa-icon [icon]="faCheckCircle"></fa-icon>
+      Vérifié
+    </div>
+  </div>
+
+  <div class="freelancer-stats">
+    <div class="stat-item" *ngIf="freelancer.noteMoyenne != null">
+      <span class="stat-value">
+        <fa-icon [icon]="faStar"></fa-icon> {{ freelancer.noteMoyenne | number:'1.1-1' }}
+      </span>
+      <span class="stat-label">Note</span>
+    </div>
+    <div class="stat-item" *ngIf="displayTarif">
+      <span class="stat-value">
+        <fa-icon [icon]="faEuroSign"></fa-icon> {{ displayTarif?.value }}
+      </span>
+      <span class="stat-label">{{ displayTarif?.label }}</span>
+    </div>
+    <div class="stat-item" *ngIf="displayExperience">
+      <span class="stat-value">
+        <fa-icon [icon]="faUserTie"></fa-icon> {{ displayExperience }}
+      </span>
+      <span class="stat-label">Expérience</span>
+    </div>
+  </div>
+
+  <div class="chips-row">
+    <span class="kpi-badge" *ngIf="displayDisponibilite">
+      <fa-icon [icon]="faClock"></fa-icon>
+      {{ displayDisponibilite }}
+    </span>
+  </div>
+
+  <div class="skills-section" *ngIf="freelancer.competences?.length || freelancer.competencesNiveaux">
+    <h4>Compétences</h4>
+    <div class="freelancer-skills">
+      <ng-container *ngIf="freelancer.competences?.length; else skillsWithLevels">
+        <span class="skill-badge" *ngFor="let skill of (freelancer.competences | slice:0:5)">{{ skill }}</span>
+      </ng-container>
+      <ng-template #skillsWithLevels>
+        <span class="skill-badge" *ngFor="let sk of (freelancer.competencesNiveaux | keyvalue) | slice:0:5">
+          {{ sk.key }} — {{ sk.value }}
+        </span>
+      </ng-template>
+    </div>
+  </div>
+</div>
+
+

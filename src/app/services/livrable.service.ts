@@ -55,12 +55,60 @@ export class LivrableService {
   }
 
   validateLivrable(livrableId: number, clientId: number): Observable<void> {
-    const headers = new HttpHeaders().set('X-Client-Id', clientId.toString());
-    return this.http.put<void>(`${this.api}/${livrableId}/valider`, {}, { headers, withCredentials: true });
+    const url = `${this.api}/${livrableId}/valider`;
+    const params = new HttpParams().set('clientId', String(clientId));
+    const headers = new HttpHeaders().set('X-Client-Id', String(clientId));
+
+    return this.http.put<void>(url, null, {
+      params,
+      headers,
+      withCredentials: true
+    });
   }
 
   rejectLivrable(livrableId: number, clientId: number, raison?: string): Observable<void> {
-    const headers = new HttpHeaders().set('X-Client-Id', clientId.toString());
-    return this.http.put<void>(`${this.api}/${livrableId}/rejeter`, raison || '', { headers, withCredentials: true });
+    const url = `${this.api}/${livrableId}/rejeter`;
+    
+    // IMPORTANT: HttpHeaders immuable → utiliser .set avec réaffectation
+    const headers = new HttpHeaders()
+      .set('X-Client-Id', String(clientId))
+      .set('Content-Type', 'text/plain; charset=utf-8');
+    
+    // Debug : vérifier les headers
+    console.log('[LivrableService] PUT', url, 'X-Client-Id =', headers.get('X-Client-Id'));
+    console.log('[LivrableService] Content-Type =', headers.get('Content-Type'));
+    
+    // Envoyer le texte brut pour respecter @RequestBody String raison
+    return this.http.put<void>(url, raison || '', { headers, withCredentials: true });
+  }
+
+  // Méthode de debug pour tester les headers
+  debugValidateRequest(livrableId: number, clientId: number): void {
+    const headers = new HttpHeaders().set('X-Client-Id', String(clientId));
+    console.log('[LivrableService] Debug validation request:', {
+      url: `${this.api}/${livrableId}/valider`,
+      method: 'PUT',
+      clientId: clientId,
+      clientIdType: typeof clientId,
+      headers: headers.keys().map(key => `${key}: ${headers.get(key)}`),
+      body: null
+    });
+  }
+
+  // Méthode alternative utilisant l'objet littéral pour les headers
+  validateLivrableAlternative(livrableId: number, clientId: number): Observable<void> {
+    const url = `${this.api}/${livrableId}/valider`;
+    
+    // Utiliser l'objet littéral pour éviter les problèmes d'immutabilité
+    const options = {
+      headers: {
+        'X-Client-Id': String(clientId)
+      },
+      withCredentials: true
+    };
+    
+    console.log('[LivrableService] Alternative PUT', url, 'options =', options);
+    
+    return this.http.put<void>(url, null, options);
   }
 }
