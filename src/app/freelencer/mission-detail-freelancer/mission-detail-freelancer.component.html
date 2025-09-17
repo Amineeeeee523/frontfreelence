@@ -1,0 +1,245 @@
+<!--
+  PAGE DE DÉTAILS DE MISSION FREELANCER - VERSION PREMIUM
+  Affichage complet des tranches de paiement et état de la mission
+-->
+<div class="mission-detail-container" *ngIf="!isLoading && !error && mission">
+
+    <!-- Header avec navigation -->
+  <div class="detail-header" @slideIn>
+      <button class="back-button" (click)="goBack()">
+        <fa-icon [icon]="faArrowLeft"></fa-icon>
+        <span>Retour aux paiements</span>
+      </button>
+      
+      <div class="mission-title-section">
+      <h1 class="mission-title">{{ mission.titre }}</h1>
+        <div class="mission-meta">
+        <span class="mission-date">{{ mission.datePublication | date:'dd/MM/yyyy' }}</span>
+        <div class="status-badge" [ngClass]="getStatusClass(mission.statut)">
+          <fa-icon [icon]="getStatusIcon(mission.statut)"></fa-icon>
+          {{ formatStatut(mission.statut) }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu principal -->
+  <div class="detail-content" @slideIn>
+
+    <!-- Section informations client -->
+    <div class="client-section" *ngIf="mission.client">
+      <div class="section-header">
+        <h2>
+          <fa-icon [icon]="faUser"></fa-icon>
+          Informations client
+        </h2>
+      </div>
+      <div class="client-info">
+        <div class="client-avatar">
+          <img [src]="mission.client.photoProfilUrl || 'assets/default-avatar.png'" 
+               [alt]="mission.client.prenom + ' ' + mission.client.nom"
+               class="avatar-img">
+          <div class="avatar-fallback" *ngIf="!mission.client.photoProfilUrl">
+            <fa-icon [icon]="faUser"></fa-icon>
+          </div>
+        </div>
+        <div class="client-details">
+          <h3>{{ mission.client.prenom }} {{ mission.client.nom }}</h3>
+          <p class="client-email">{{ mission.client.email }}</p>
+          <div class="client-stats">
+            <span class="stat-item">
+              <fa-icon [icon]="faChartLine"></fa-icon>
+              {{ mission.client.nom }} missions
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section statistiques de paiement -->
+    <div class="payment-stats-section">
+      <div class="section-header">
+        <h2>
+          <fa-icon [icon]="faDollarSign"></fa-icon>
+          Statistiques de paiement
+        </h2>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card earnings">
+          <div class="stat-icon earnings">
+            <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ mission.netEarnings | number:'1.2-2' }} TND</span>
+            <span class="stat-label">Gains nets reçus</span>
+          </div>
+        </div>
+        
+        <div class="stat-card potential">
+          <div class="stat-icon potential">
+            <fa-icon [icon]="faArrowUp"></fa-icon>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ mission.totalNetEarnings | number:'1.2-2' }} TND</span>
+            <span class="stat-label">Potentiel total</span>
+          </div>
+        </div>
+
+        <div class="stat-card progress">
+          <div class="stat-icon progress">
+            <fa-icon [icon]="faList"></fa-icon>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ mission.progress | number:'1.0-0' }}%</span>
+            <span class="stat-label">Progression</span>
+          </div>
+        </div>
+
+        <div class="stat-card tranches">
+          <div class="stat-icon tranches">
+            <fa-icon [icon]="faLayerGroup"></fa-icon>
+          </div>
+          <div class="stat-content">
+            <span class="stat-value">{{ mission.paidTranches }}/{{ mission.totalTranches }}</span>
+            <span class="stat-label">Tranches payées</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section tranches de paiement -->
+    <div class="tranches-section" *ngIf="mission.summary && mission.summary.tranches">
+      <div class="section-header">
+        <h2>
+          <fa-icon [icon]="faFileInvoiceDollar"></fa-icon>
+          Tranches de paiement
+        </h2>
+      </div>
+      <div class="tranches-list">
+        <div *ngFor="let tranche of mission.summary.tranches; let i = index" 
+             class="tranche-card" 
+             [ngClass]="getTrancheStatusClass(tranche.statut)"
+             @fadeIn>
+          <div class="tranche-header">
+            <div class="tranche-info">
+              <h3>Tranche {{ i + 1 }}</h3>
+              <span class="tranche-amount">{{ tranche.montantNetFreelance | number:'1.2-2' }} TND</span>
+            </div>
+            <div class="tranche-status" [ngClass]="getTrancheStatusClass(tranche.statut)">
+              <fa-icon [icon]="getTrancheStatusIcon(tranche.statut)"></fa-icon>
+              <span>{{ tranche.statut === 'VERSEE_FREELANCE' ? 'Payée' : 'En attente' }}</span>
+            </div>
+          </div>
+          <div class="tranche-details">
+            <div class="detail-row">
+              <span class="label">Montant brut:</span>
+              <span class="value">{{ tranche.montantBrut | number:'1.2-2' }} TND</span>
+            </div>
+            <div class="detail-row">
+              <span class="label">Frais de service:</span>
+              <span class="value">{{ (tranche.montantBrut - tranche.montantNetFreelance) | number:'1.2-2' }} TND</span>
+            </div>
+            <div class="detail-row" *ngIf="tranche.dateVersement">
+              <span class="label">Date de versement:</span>
+              <span class="value">{{ tranche.dateVersement | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section détails du contrat (simulé) -->
+    <div class="contract-section" *ngIf="mission.contractDetails">
+      <div class="section-header">
+        <h2>
+          <fa-icon [icon]="faFileInvoiceDollar"></fa-icon>
+          Détails du contrat
+        </h2>
+      </div>
+      <div class="contract-details">
+        <div class="contract-info">
+          <div class="info-item">
+            <span class="label">Date de début:</span>
+            <span class="value">{{ mission.contractDetails.startDate }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Durée estimée:</span>
+            <span class="value">{{ mission.contractDetails.estimatedDuration }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Achèvement estimé:</span>
+            <span class="value">{{ mission.estimatedCompletion }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Prochain jalon:</span>
+            <span class="value">{{ mission.nextMilestone }}</span>
+          </div>
+      </div>
+      
+        <div class="deliverables">
+          <h3>Livrables attendus</h3>
+          <ul>
+            <li *ngFor="let deliverable of mission.contractDetails.deliverables">
+              <fa-icon [icon]="faCheckCircle"></fa-icon>
+              {{ deliverable }}
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section historique des actions (simulé) -->
+    <div class="history-section" *ngIf="actionHistory.length > 0">
+      <div class="section-header">
+        <h2>
+          <fa-icon [icon]="faHistory"></fa-icon>
+          Historique des actions
+        </h2>
+      </div>
+      <div class="timeline">
+        <div *ngFor="let action of actionHistory" 
+             class="timeline-item" 
+             [ngClass]="action.status"
+             @fadeIn>
+          <div class="timeline-marker">
+            <fa-icon [icon]="action.icon"></fa-icon>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <h4>{{ action.action }}</h4>
+              <span class="timeline-date">{{ action.date | date:'dd/MM/yyyy' }}</span>
+            </div>
+            <p class="timeline-description">{{ action.description }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+      </div>
+      
+<!-- État de chargement -->
+<div *ngIf="isLoading" class="loading-container">
+  <div class="loading-content">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <div class="spinner-ring"></div>
+        </div>
+    <h3>Chargement des détails...</h3>
+    <p>Récupération des informations de la mission</p>
+        </div>
+      </div>
+      
+<!-- État d'erreur -->
+<div *ngIf="error" class="error-container">
+  <div class="error-content">
+    <fa-icon [icon]="faExclamationTriangle" size="3x"></fa-icon>
+    <h3>Erreur</h3>
+    <p>{{ error }}</p>
+    <button class="retry-button" (click)="goBack()">
+      <fa-icon [icon]="faArrowLeft"></fa-icon>
+      Retour
+        </button>
+  </div>
+</div>

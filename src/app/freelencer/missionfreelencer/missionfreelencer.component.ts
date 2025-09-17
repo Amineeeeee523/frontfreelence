@@ -5,7 +5,9 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { 
   faSearch, faCalendarAlt, faMoneyBillWave, faChevronDown, faUpload, faEye, 
   faExclamationCircle, faPaperclip, faLink, faTrash, faFilePdf, faFileZipper, 
-  faFileVideo, faFileImage, faFile, faTimes, faCheckCircle, faFolderOpen, faSpinner, faUserCircle, faPaperPlane 
+  faFileVideo, faFileImage, faFile, faTimes, faCheckCircle, faFolderOpen, faSpinner, faUserCircle, faPaperPlane,
+  faMapPin, faClock, faUsers, faStar, faThumbsUp, faPlay, faDownload, faExternalLinkAlt, faCode, faLanguage, faGraduationCap,
+  faFlagCheckered, faListCheck, faInbox, faHourglassHalf, faClipboardCheck, faXmarkCircle, faClockRotateLeft
 } from '@fortawesome/free-solid-svg-icons';
 import { faGithub, faFigma, faGoogleDrive } from '@fortawesome/free-brands-svg-icons';
 import { forkJoin, of } from 'rxjs';
@@ -14,11 +16,13 @@ import { map, switchMap, catchError } from 'rxjs/operators';
 import { MissionsService } from '../../services/missions.service';
 import { AuthService } from '../../services/auth.service';
 import { UtilisateurService } from '../../services/utilisateurs.service';
-import { Mission, MissionStatut } from '../../models/mission.model';
+import { Mission, MissionStatut, Importance } from '../../models/mission.model';
 import { Utilisateur } from '../../models/utilisateur.model';
 import { FileStorageService } from '../../services/file-storage.service';
 import { LivrableService } from '../../services/livrable.service';
 import { CreateLivrableRequest, Livrable } from '../../models/livrable.model';
+import { FreelancerMissionDetailDTO } from '../../models/freelancer-mission-detail.model';
+import { mapFreelancerDtoToViewModel } from '../../utils/mission-mapper';
 
 export interface MissionViewModel extends Mission {
   client?: Utilisateur;
@@ -51,6 +55,12 @@ export class MissionfreelencerComponent implements OnInit {
   faFile = faFile; faTimes = faTimes; faCheckCircle = faCheckCircle; faFolderOpen = faFolderOpen;
   faSpinner = faSpinner; faGithub = faGithub; faFigma = faFigma; faGoogleDrive = faGoogleDrive;
   faUserCircle = faUserCircle; faPaperPlane = faPaperPlane;
+  faMapPin = faMapPin; faClock = faClock; faUsers = faUsers; faStar = faStar;
+  faThumbsUp = faThumbsUp; faPlay = faPlay; faDownload = faDownload; faExternalLinkAlt = faExternalLinkAlt;
+  faCode = faCode; faLanguage = faLanguage; faGraduationCap = faGraduationCap;
+  faFlagCheckered = faFlagCheckered; faListCheck = faListCheck; faInbox = faInbox;
+  faHourglassHalf = faHourglassHalf; faClipboardCheck = faClipboardCheck; faXmarkCircle = faXmarkCircle;
+  faClockRotateLeft = faClockRotateLeft;
 
   allMissions: MissionViewModel[] = [];
   filteredMissions: MissionViewModel[] = [];
@@ -75,6 +85,11 @@ export class MissionfreelencerComponent implements OnInit {
   externalLinks: { url: string; icon: any }[] = [{ url: '', icon: faLink }];
   uploadedFiles: UploadedFile[] = [];
   isDragOver = false;
+
+  // --- Mission Detail Modal ---
+  isDetailModalOpen = false;
+  isLoadingDetail = false;
+  currentMissionDetail?: FreelancerMissionDetailDTO;
 
   constructor(
     private missionsService: MissionsService,
@@ -123,15 +138,14 @@ export class MissionfreelencerComponent implements OnInit {
     });
   }
 
-  getClientPhotoUrl(client: Utilisateur | undefined): string {
-    if (client && client.photoProfilUrl) {
-      return client.photoProfilUrl;
-    }
-    return `https://i.pravatar.cc/40?u=${client?.id || 'default'}`;
-  }
 
   selectStatus(status: string): void {
     this.statusFilter = status;
+    this.filterAndSortMissions();
+  }
+
+  updateSortBy(sort: string): void {
+    this.sortBy = sort;
     this.filterAndSortMissions();
   }
 
@@ -343,4 +357,196 @@ export class MissionfreelencerComponent implements OnInit {
   public getIconForFileType(type: string): any {
     return this.getIconAndColorForFileType(type).icon;
   }
+
+  // --- Mission Detail Methods ---
+  openMissionDetail(mission: MissionViewModel): void {
+    this.isDetailModalOpen = true;
+    this.isLoadingDetail = true;
+    this.currentMissionDetail = undefined;
+
+    const currentUser = this.authService.snapshot;
+    if (currentUser?.id) {
+      this.missionsService.getFreelancerMissionDetailView(mission.id, currentUser.id).subscribe({
+        next: (detail) => {
+          this.currentMissionDetail = detail;
+          this.isLoadingDetail = false;
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des détails de la mission:', error);
+          this.isLoadingDetail = false;
+        }
+      });
+    }
+  }
+
+  closeMissionDetail(): void {
+    this.isDetailModalOpen = false;
+    this.currentMissionDetail = undefined;
+    this.isLoadingDetail = false;
+  }
+
+  // --- Helper Methods for Detail View ---
+
+  getClientPhotoUrl(client: any): string {
+    if (client && client.photoUrl) {
+      return client.photoUrl;
+    }
+    if (client && client.photoProfilUrl) {
+      return client.photoProfilUrl;
+    }
+    return `https://i.pravatar.cc/40?u=${client?.id || 'default'}`;
+  }
+
+  getCompetenceLevel(competence: string): string {
+    if (this.currentMissionDetail?.competencesPriorisees) {
+      return this.currentMissionDetail.competencesPriorisees[competence] || 'NICE';
+    }
+    return 'NICE';
+  }
+
+  getCompetenceLevelClass(level: string): string {
+    return level === 'MUST' ? 'must-have' : 'nice-to-have';
+  }
+
+  getModaliteLabel(modalite: string): string {
+    switch (modalite) {
+      case 'DISTANCIEL': return 'Télétravail';
+      case 'PRESENTIEL': return 'Sur site';
+      case 'HYBRIDE': return 'Hybride';
+      default: return 'Non spécifié';
+    }
+  }
+
+  getNiveauExperienceLabel(niveau: string): string {
+    switch (niveau) {
+      case 'DEBUTANT': return 'Débutant';
+      case 'INTERMEDIAIRE': return 'Intermédiaire';
+      case 'EXPERT': return 'Expert';
+      default: return 'Non spécifié';
+    }
+  }
+
+  getQualiteBriefLabel(qualite: string): string {
+    switch (qualite) {
+      case 'COMPLET': return 'Complet';
+      case 'MOYEN': return 'Moyen';
+      case 'LACUNAIRE': return 'Lacunaire';
+      default: return 'Non spécifié';
+    }
+  }
+
+  getQualiteBriefClass(qualite: string): string {
+    switch (qualite) {
+      case 'COMPLET': return 'qualite-complete';
+      case 'MOYEN': return 'qualite-moyenne';
+      case 'LACUNAIRE': return 'qualite-lacunaire';
+      default: return 'qualite-default';
+    }
+  }
+
+  getMatchingScoreClass(score: number): string {
+    if (score >= 80) return 'score-excellent';
+    if (score >= 60) return 'score-good';
+    if (score >= 40) return 'score-fair';
+    return 'score-poor';
+  }
+
+  getMatchingScoreLabel(score: number): string {
+    if (score >= 80) return 'Excellent match';
+    if (score >= 60) return 'Bon match';
+    if (score >= 40) return 'Match correct';
+    return 'Match faible';
+  }
+
+  // === NOUVELLES MÉTHODES POUR L'INTERFACE MODERNE ===
+
+  trackByMissionId(index: number, mission: MissionViewModel): number {
+    return mission.id;
+  }
+
+  getStatusCount(status: string): number {
+    if (status === 'Tous') return this.allMissions.length;
+    const missionStatus = this.getMissionStatusFromString(status);
+    return this.allMissions.filter(m => m.statut === missionStatus).length;
+  }
+
+  getCardStatusClass(status: MissionStatut): string {
+    switch (status) {
+      case MissionStatut.EN_COURS: return 'card--en-cours';
+      case MissionStatut.TERMINEE: return 'card--terminee';
+      case MissionStatut.EN_ATTENTE: return 'card--en-attente';
+      case MissionStatut.ANNULEE: return 'card--annulee';
+      case MissionStatut.EXPIREE: return 'card--expiree';
+      case MissionStatut.PRET_A_CLOTURER: return 'card--prete';
+      default: return 'card--default';
+    }
+  }
+
+  getStatusIcon(status: MissionStatut): any {
+    switch (status) {
+      case MissionStatut.EN_COURS: return faPlay;
+      case MissionStatut.TERMINEE: return faCheckCircle;
+      case MissionStatut.EN_ATTENTE: return faClock;
+      case MissionStatut.ANNULEE: return faTimes;
+      case MissionStatut.EXPIREE: return faExclamationCircle;
+      case MissionStatut.PRET_A_CLOTURER: return faFlagCheckered;
+      default: return faFolderOpen;
+    }
+  }
+
+  getBudgetDisplay(mission: MissionViewModel): string {
+    if (mission.typeRemuneration === 'TJM' && mission.tjmJournalier) {
+      return `${mission.tjmJournalier} TND/jour`;
+    }
+    if (mission.budgetMin && mission.budgetMax) {
+      return `${mission.budgetMin} - ${mission.budgetMax} TND`;
+    }
+    return `${mission.budget} TND`;
+  }
+
+  /**
+   * Formate le budget pour FreelancerMissionDetailDTO
+   */
+  getBudgetDisplayForDetail(detail: FreelancerMissionDetailDTO): string {
+    if (detail.typeRemuneration === 'TJM' && detail.tjmJournalier) {
+      return `${detail.tjmJournalier} TND/jour`;
+    }
+    if (detail.budgetMin && detail.budgetMax) {
+      return `${detail.budgetMin} - ${detail.budgetMax} TND`;
+    }
+    return `${detail.budget || 0} TND`;
+  }
+
+  getProgressPercentage(mission: MissionViewModel): number {
+    return mission.progress || this.calculateProgress(mission);
+  }
+
+  canDeliver(mission: MissionViewModel): boolean {
+    return mission.statut === MissionStatut.EN_COURS || 
+           mission.statut === MissionStatut.EN_ATTENTE_VALIDATION;
+  }
+
+  acceptMission(mission: MissionViewModel): void {
+    // Logique pour accepter une mission
+    console.log('Accepter la mission:', mission.id);
+    // TODO: Implémenter la logique d'acceptation
+  }
+
+  refreshMissions(): void {
+    this.isLoading = true;
+    // Recharger les missions
+    this.ngOnInit();
+  }
+
+  // --- Delivery Form Integration ---
+  onOpenDeliveryForm(): void {
+    if (!this.currentMissionDetail) return;
+    
+    // Convert FreelancerMissionDetailDTO to MissionViewModel using mapper
+    const missionViewModel = mapFreelancerDtoToViewModel(this.currentMissionDetail);
+    
+    this.closeMissionDetail();
+    this.openDeliveryForm(missionViewModel);
+  }
+
 }

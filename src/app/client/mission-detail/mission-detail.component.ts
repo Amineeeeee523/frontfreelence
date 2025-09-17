@@ -64,6 +64,10 @@ export class MissionDetailComponent implements OnInit {
   isError = signal(false);
   errorMessage = signal('');
   mission: WritableSignal<MissionDetailView | null> = signal(null);
+  
+  // State pour l'affichage des livrables par tranche
+  selectedTrancheForLivrables: WritableSignal<TrancheMini | null> = signal(null);
+  isLivrablesModalOpen = signal(false);
 
   // Computed properties
   statusClass = computed(() => {
@@ -302,5 +306,159 @@ export class MissionDetailComponent implements OnInit {
   openVideo(url: string): void {
     if (!url) return;
     window.open(url, '_blank');
+  }
+
+  // Payment status methods
+  isTranchePayable(tranche: TrancheMini): boolean {
+    // Tranche payable si elle a une URL de paiement et n'est pas déjà payée
+    return !!(tranche.paymentUrl && this.isTrancheNotPaid(tranche));
+  }
+
+  isTrancheNotPaid(tranche: TrancheMini): boolean {
+    // Tranche non payée si le statut indique qu'elle est en attente de paiement
+    const unpaidStatuses = [
+      'EN_ATTENTE_DEPOT',
+      'EN_ATTENTE_PAIEMENT', 
+      'FONDS_BLOQUES',
+      'EN_ATTENTE_VALIDATION'
+    ];
+    return unpaidStatuses.includes(tranche.statut);
+  }
+
+  isTranchePaid(tranche: TrancheMini): boolean {
+    // Tranche payée si elle est validée ou versée au freelance
+    const paidStatuses = [
+      'VALIDEE',
+      'VERSEE_FREELANCE'
+    ];
+    return paidStatuses.includes(tranche.statut);
+  }
+
+  isTrancheRejected(tranche: TrancheMini): boolean {
+    return tranche.statut === 'REJETEE';
+  }
+
+  isTrancheInError(tranche: TrancheMini): boolean {
+    return tranche.statut === 'ERREUR_CAPTURE';
+  }
+
+  getTrancheStatusLabel(tranche: TrancheMini): string {
+    switch (tranche.statut) {
+      case 'EN_ATTENTE_DEPOT':
+        return 'En attente de dépôt';
+      case 'EN_ATTENTE_PAIEMENT':
+        return 'En attente de paiement';
+      case 'FONDS_BLOQUES':
+        return 'Fonds bloqués';
+      case 'EN_ATTENTE_VALIDATION':
+        return 'En attente de validation';
+      case 'VALIDEE':
+        return 'Validée';
+      case 'VERSEE_FREELANCE':
+        return 'Versée au freelance';
+      case 'REJETEE':
+        return 'Rejetée';
+      case 'ERREUR_CAPTURE':
+        return 'Erreur de capture';
+      default:
+        return tranche.statut;
+    }
+  }
+
+  getTrancheStatusIcon(tranche: TrancheMini): any {
+    if (this.isTranchePaid(tranche)) {
+      return this.faCheckCircle;
+    } else if (this.isTrancheRejected(tranche)) {
+      return this.faTimes;
+    } else if (this.isTrancheInError(tranche)) {
+      return this.faExclamationTriangle;
+    } else {
+      return this.faClock;
+    }
+  }
+
+  getTrancheStatusClass(tranche: TrancheMini): string {
+    if (this.isTranchePaid(tranche)) {
+      return 'status-paid';
+    } else if (this.isTrancheRejected(tranche)) {
+      return 'status-rejected';
+    } else if (this.isTrancheInError(tranche)) {
+      return 'status-error';
+    } else {
+      return 'status-pending';
+    }
+  }
+
+  // Méthodes pour gérer les livrables par tranche
+  openLivrablesForTranche(tranche: TrancheMini): void {
+    this.selectedTrancheForLivrables.set(tranche);
+    this.isLivrablesModalOpen.set(true);
+  }
+
+  closeLivrablesModal(): void {
+    this.isLivrablesModalOpen.set(false);
+    this.selectedTrancheForLivrables.set(null);
+  }
+
+  getLivrablesForTranche(tranche: TrancheMini): LivrableLite[] {
+    const mission = this.mission();
+    if (!mission || !mission.livrables) {
+      return [];
+    }
+
+    // 🎯 SOLUTION ULTRA LOGIQUE : Priorité d'association
+    
+    // 1. PRIORITÉ MAXIMALE : Livrables directement associés à la tranche
+    if (tranche.livrables && tranche.livrables.length > 0) {
+      return tranche.livrables;
+    }
+
+    // 2. PRIORITÉ ÉLEVÉE : Livrable associé par ID spécifique
+    if (tranche.livrableAssocieId) {
+      const livrableAssocie = mission.livrables.find(livrable => 
+        livrable.id === tranche.livrableAssocieId
+      );
+      if (livrableAssocie) {
+        return [livrableAssocie];
+      }
+    }
+
+    // 3. PRIORITÉ MOYENNE : Association logique par ordre de tranche
+    const totalTranches = mission.paiements?.tranches?.length || 0;
+    const totalLivrables = mission.livrables.length;
+    
+    if (totalTranches > 0 && totalLivrables > 0) {
+      const trancheIndex = tranche.ordre - 1; // ordre commence à 1
+      const livrablesParTranche = Math.ceil(totalLivrables / totalTranches);
+      const startIndex = trancheIndex * livrablesParTranche;
+      const endIndex = Math.min(startIndex + livrablesParTranche, totalLivrables);
+      
+      if (startIndex < totalLivrables) {
+        return mission.livrables.slice(startIndex, endIndex);
+      }
+    }
+
+    // 4. FALLBACK : Si c'est la tranche finale, associer tous les livrables non associés
+    if (tranche.finale && mission.livrables.length > 0) {
+      return mission.livrables;
+    }
+
+    // 5. AUCUN LIVRABLE : Retourner un tableau vide
+    return [];
+  }
+
+  hasLivrablesForTranche(tranche: TrancheMini): boolean {
+    return this.getLivrablesForTranche(tranche).length > 0;
+  }
+
+  getLivrablesCountForTranche(tranche: TrancheMini): number {
+    return this.getLivrablesForTranche(tranche).length;
+  }
+
+  // Close modal method
+  closeModal(): void {
+    // Emit close event or handle modal closing
+    // This will be handled by the parent component
+    window.history.back();
   }
 }

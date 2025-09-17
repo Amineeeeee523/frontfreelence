@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal, computed, WritableSignal } from '@an
 import { trigger, transition, style, animate } from '@angular/animations';
 import { CommonModule, TitleCasePipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { FaIconComponent, FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { firstValueFrom } from 'rxjs';
 import {
@@ -12,6 +13,13 @@ import {
   faListCheck, faCheckCircle, faInbox, faHourglassHalf, faPlay, faClipboardCheck,
   faXmarkCircle, faClockRotateLeft
 } from '@fortawesome/free-solid-svg-icons';
+
+// + AJOUTER
+import { FeedbackApiService } from '../../services/feedback-api.service';
+import { FeedbackSocketService } from '../../services/feedback-socket.service';
+import { Audience, CriterionType, FeedbackRole } from '../../models/feedback.enums';
+import { FeedbackEligibility, FeedbackWindow, FeedbackCreateRequest, FeedbackResponse, FeedbackUpdateRequest, ScoreItem } from '../../models/feedback.models';
+import { generateIdempotencyKey } from '../../utils/idempotency.util';
 
 import { Mission, MissionStatut, MissionCategorie, ModaliteTravail, TypeRemuneration, NiveauBrief, Gouvernorat } from '../../models/mission.model';
 import { MissionCard } from '../../models/mission-card.model';
@@ -27,6 +35,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { MissionCardComponent } from '../../components/mission-card/mission-card.component';
 import { MissionDetailComponent } from '../mission-detail/mission-detail.component';
 import { StatutLabelPipe } from '../../pipes/mission-statut-label.pipe';
+import { StarsRatingComponent } from '../../shared/components/stars-rating/stars-rating.component';
 
 // Interface pour enrichir la mission avec le freelance et la progression
 interface MissionView extends MissionCard {
@@ -47,7 +56,8 @@ interface MissionView extends MissionCard {
     MissionCardComponent,
     MissionDetailComponent,
     StatutLabelPipe,
-    FontAwesomeModule
+    FontAwesomeModule,
+    StarsRatingComponent
   ],
   templateUrl: './missionsclient.component.html',
   styleUrls: ['./missionsclient.component.scss'],
@@ -71,7 +81,12 @@ export class MissionsclientComponent implements OnInit {
   private livrableService = inject(LivrableService);
   private utilisateurService = inject(UtilisateurService);
   private fileStorageService = inject(FileStorageService);
+  private router = inject(Router);
   private fb = inject(FormBuilder);
+
+  // + AJOUTER
+  private feedbackApi = inject(FeedbackApiService);
+  private feedbackSocket = inject(FeedbackSocketService);
 
   // --- Icons ---
   faPlus = faPlus;
@@ -205,6 +220,24 @@ export class MissionsclientComponent implements OnInit {
   isDetailOverlayOpen = signal(false);
   selectedMissionForDetail: WritableSignal<MissionView | null> = signal(null);
 
+  // + AJOUTER - Feedback Modal State
+  isFeedbackModalOpen = signal(false);
+  isSubmittingFeedback = signal(false);
+  selectedMissionForFeedback: WritableSignal<MissionView | null> = signal(null);
+  feedbackModalMode = signal<'create' | 'view' | 'edit'>('create');
+
+  feedbackEligibility = signal<Record<number, FeedbackEligibility>>({});
+  feedbackWindow = signal<Record<number, FeedbackWindow>>({});
+  feedbackData = signal<Record<number, FeedbackResponse>>({});
+
+  feedbackForm: FormGroup;
+
+  // Critères (client -> freelance)
+  readonly criteriaForClient: CriterionType[] = [
+    CriterionType.QUALITY, CriterionType.TIMELINESS, CriterionType.COMMUNICATION,
+    CriterionType.TECHNICAL, CriterionType.GLOBAL
+  ];
+
   constructor() {
     this.missionForm = this.fb.group({
       id: [null],
@@ -231,9 +264,36 @@ export class MissionsclientComponent implements OnInit {
       mediaUrls: [''],
       videoBriefUrl: ['']
     });
+
+    // + AJOUTER - Feedback Form avec validation complète
+    this.feedbackForm = this.fb.group({
+      quality: [1, [Validators.required, Validators.min(1), Validators.max(5)]],
+      timeliness: [1, [Validators.required, Validators.min(1), Validators.max(5)]],
+      communication: [1, [Validators.required, Validators.min(1), Validators.max(5)]],
+      technical: [1, [Validators.required, Validators.min(1), Validators.max(5)]],
+      global: [1, [Validators.required, Validators.min(1), Validators.max(5)]],
+      comment: ['', [Validators.required, Validators.minLength(30), Validators.maxLength(800)]]
+    });
   }
 
   ngOnInit(): void {
+    // Log de configuration au démarrage
+    console.group('[MissionsClient] Configuration Feedback');
+    console.log('🔧 Services injectés:');
+    console.log('  - FeedbackApiService:', !!this.feedbackApi);
+    console.log('  - FeedbackSocketService:', !!this.feedbackSocket);
+    console.log('🔧 Configuration feedback:');
+    console.log('  - Critères disponibles:', this.criteriaForClient);
+    console.log('  - Form initialisé:', !!this.feedbackForm);
+    console.log('🔧 État initial:');
+    console.log('  - feedbackData:', this.feedbackData());
+    console.log('  - feedbackEligibility:', this.feedbackEligibility());
+    console.log('  - feedbackWindow:', this.feedbackWindow());
+    console.groupEnd();
+
+    // 🔥 CORRECTION : Ajouter des watchers pour auto-correction des scores
+    this.setupScoreWatchers();
+
     this.authService.user$.subscribe(user => {
       this.currentUser = user;
       if (user && user.id) {
@@ -243,6 +303,27 @@ export class MissionsclientComponent implements OnInit {
 
     // Vérifier les paramètres de requête pour ouvrir automatiquement la modale des livrables
     this.checkQueryParamsForLivrables();
+  }
+
+  /**
+   * Configure les watchers pour auto-correction des scores
+   */
+  private setupScoreWatchers(): void {
+    console.group('[Feedback] Configuration des watchers de scores');
+    
+    ['quality', 'timeliness', 'communication', 'technical', 'global'].forEach(k => {
+      const c = this.feedbackForm.get(k)!;
+      c.valueChanges.subscribe(v => {
+        const coerced = this.coerceScore(v);
+        if (v !== coerced) {
+          console.log(`[Feedback] Auto-correction ${k}: ${v} → ${coerced}`);
+          c.setValue(coerced, { emitEvent: false });
+        }
+      });
+    });
+    
+    console.log('[Feedback] ✅ Watchers configurés pour auto-correction des scores');
+    console.groupEnd();
   }
 
   /**
@@ -300,6 +381,22 @@ export class MissionsclientComponent implements OnInit {
       
       // Enrichir progressivement les missions
       this.enrichMissionsProgressively(basicMissions);
+      
+      // + AJOUTER - Pré-charger l'éligibilité feedback et les données existantes
+      missions.forEach((m, index) => {
+        console.log(`[Feedback] Pré-chargement pour mission ${m.id} (statut: ${m.statut})`);
+        this.prefetchFeedbackEligibility(m.id);
+        
+        // 🔥 CORRECTION : Charger les données de feedback pour TOUTES les missions terminées/prêtes
+        if (m.statut === 'TERMINEE' || m.statut === 'PRET_A_CLOTURER') {
+          console.log(`[Feedback] 🔥 Chargement feedback pour mission ${m.id} (statut: ${m.statut})`);
+          // Délai progressif pour éviter de surcharger l'API
+          setTimeout(() => {
+            this.loadFeedbackData(m.id);
+          }, index * 200); // Délai progressif de 200ms par mission
+        }
+      });
+      
       console.groupEnd();
     });
   }
@@ -750,11 +847,43 @@ export class MissionsclientComponent implements OnInit {
   }
 
   // === CTA handlers from mission-card ===
-  onPayerTranche(trancheId: number): void {
+  onPayerTranche(trancheId: number, mission?: MissionView): void {
     try {
       console.log('[MissionCard] Payer tranche', trancheId);
-      alert('Paiement de la tranche #' + trancheId + ' (TODO: implémenter la redirection paiement)');
-    } catch {}
+      
+      if (mission) {
+        console.log('[MissionCard] Navigation vers paiements avec mission:', {
+          missionId: mission.id,
+          missionTitle: mission.titre,
+          trancheId: trancheId
+        });
+        
+        // Navigation vers la section paiements avec les paramètres de la mission et tranche
+        this.router.navigate(['/client/paiements'], {
+          queryParams: {
+            missionId: mission.id,
+            missionTitle: mission.titre,
+            trancheId: trancheId,
+            category: mission.categorie,
+            budget: mission.budget
+          }
+        }).then(success => {
+          console.log('[MissionCard] Navigation vers paiements réussie:', success);
+        }).catch(error => {
+          console.error('[MissionCard] Erreur navigation vers paiements:', error);
+        });
+      } else {
+        // Fallback vers la section paiements générale
+        console.log('[MissionCard] Navigation vers paiements générale');
+        this.router.navigate(['/client/paiements']).then(success => {
+          console.log('[MissionCard] Navigation générale vers paiements réussie:', success);
+        }).catch(error => {
+          console.error('[MissionCard] Erreur navigation générale vers paiements:', error);
+        });
+      }
+    } catch (error) {
+      console.error('[MissionCard] Erreur lors du paiement de la tranche:', error);
+    }
   }
 
   onBoosterMission(missionId: number): void {
@@ -784,7 +913,51 @@ export class MissionsclientComponent implements OnInit {
     console.log('[MissionsClient] Fermeture détails mission');
     this.isDetailOverlayOpen.set(false);
     this.selectedMissionForDetail.set(null);
+    
+    // S'assurer qu'on reste dans le composant MissionsClient
+    // Ne pas rediriger ou changer de route
   }
+
+  /**
+   * Navigue vers l'exploration des freelances
+   */
+  navigateToExploreFreelancers(mission?: MissionView): void {
+    console.log('[MissionsClient] Navigation vers exploration des freelances');
+    
+    if (mission) {
+      console.log('[MissionsClient] Mission sélectionnée:', {
+        id: mission.id,
+        titre: mission.titre,
+        categorie: mission.categorie,
+        budget: mission.budget,
+        competencesRequises: mission.competencesRequises
+      });
+      
+      // Navigation avec les paramètres de la mission
+      this.router.navigate(['/client/explorer-freelances'], {
+        queryParams: {
+          missionId: mission.id,
+          missionTitle: mission.titre,
+          category: mission.categorie,
+          budget: mission.budget,
+          skills: mission.competencesRequises?.join(',') || ''
+        }
+      }).then(success => {
+        console.log('[MissionsClient] Navigation avec mission réussie:', success);
+      }).catch(error => {
+        console.error('[MissionsClient] Erreur de navigation avec mission:', error);
+      });
+    } else {
+      // Navigation générale sans mission spécifique
+      console.log('[MissionsClient] Route cible: /client/explorer-freelances');
+      this.router.navigate(['/client/explorer-freelances']).then(success => {
+        console.log('[MissionsClient] Navigation générale réussie:', success);
+      }).catch(error => {
+        console.error('[MissionsClient] Erreur de navigation générale:', error);
+      });
+    }
+  }
+
 
   // Méthode de test pour vérifier les headers
   testHeaders(): void {
@@ -895,6 +1068,11 @@ export class MissionsclientComponent implements OnInit {
    * Détermine la prochaine action à afficher
    */
   getNextAction(mission: MissionView): string {
+    // + AJOUTER - Feedback en priorité
+    if (this.isFeedbackEligible(mission)) {
+      return 'feedback';
+    }
+    
     if (mission.livrablesEnAttente && mission.livrablesEnAttente > 0) {
       return 'valider';
     }
@@ -908,6 +1086,95 @@ export class MissionsclientComponent implements OnInit {
       return 'booster';
     }
     return 'details';
+  }
+
+  /**
+   * Détermine les actions disponibles pour le feedback (simplifié pour les cartes de mission)
+   */
+  getFeedbackActions(mission: MissionView): string[] {
+    const actions: string[] = [];
+    
+    // 🔥 CORRECTION : Debug détaillé pour voir l'état
+    const feedbackData = this.feedbackData()[mission.id];
+    const eligibility = this.feedbackEligibility()[mission.id];
+    const hasFeedback = this.hasFeedback(mission);
+    const isEligible = this.isFeedbackEligible(mission);
+    
+    console.log(`[Feedback] getFeedbackActions pour mission ${mission.id}:`, {
+      missionStatut: mission.statut,
+      hasFeedback,
+      isEligible,
+      feedbackData: feedbackData ? {
+        id: feedbackData.id,
+        submittedAt: feedbackData.submittedAt,
+        publishedAt: feedbackData.publishedAt,
+        overallRating: feedbackData.overallRating
+      } : null,
+      eligibility: eligibility ? {
+        eligible: eligibility.eligible,
+        reason: eligibility.reason
+      } : null,
+      feedbackDataKeys: Object.keys(this.feedbackData()),
+      allFeedbackData: this.feedbackData()
+    });
+    
+    // 🔥 CORRECTION : Logique simplifiée - seulement create et view dans les cartes
+    if (hasFeedback && feedbackData) {
+      console.log(`[Feedback] ✅ Feedback trouvé pour mission ${mission.id}, ajout de l'action 'view'`);
+      actions.push('view'); // Toujours possible de voir
+    } else if (isEligible) {
+      console.log(`[Feedback] ✅ Mission ${mission.id} éligible au feedback, ajout de l'action 'create'`);
+      actions.push('create');
+    } else {
+      console.log(`[Feedback] ❌ Mission ${mission.id} non éligible au feedback`);
+    }
+    
+    console.log(`[Feedback] 🎯 Actions finales pour mission ${mission.id}:`, actions);
+    return actions;
+  }
+
+  /**
+   * Force le rechargement des données de feedback pour une mission
+   */
+  refreshFeedbackData(missionId: number): void {
+    console.group(`[Feedback] 🔥 Rechargement forcé des données pour mission ${missionId}`);
+    console.log('📊 État avant rechargement:', {
+      missionId,
+      currentFeedbackData: this.feedbackData()[missionId],
+      allFeedbackDataKeys: Object.keys(this.feedbackData())
+    });
+    
+    // 🔥 CORRECTION : Vider les données existantes pour forcer le rechargement
+    this.feedbackData.update(map => {
+      const newMap = { ...map };
+      delete newMap[missionId];
+      console.log(`[Feedback] 🔥 Données vidées pour mission ${missionId}:`, {
+        newMap,
+        allKeys: Object.keys(newMap)
+      });
+      return newMap;
+    });
+    
+    // Recharger l'éligibilité
+    this.prefetchFeedbackEligibility(missionId);
+    
+    // Recharger la fenêtre
+    this.loadFeedbackWindow(missionId);
+    
+    // Forcer le rechargement des données de feedback
+    this.loadFeedbackData(missionId);
+    
+    // 🔥 CORRECTION : Forcer le change detection après un délai
+    setTimeout(() => {
+      console.log('[Feedback] 🔥 État final après rechargement:', {
+        missionId,
+        feedbackData: this.feedbackData()[missionId],
+        hasFeedback: this.hasFeedback({ id: missionId } as MissionView),
+        actions: this.getFeedbackActions({ id: missionId } as MissionView),
+        allFeedbackDataKeys: Object.keys(this.feedbackData())
+      });
+      console.groupEnd();
+    }, 500);
   }
 
   /**
@@ -940,5 +1207,820 @@ export class MissionsclientComponent implements OnInit {
   plural(n: number, singular: string, plural: string): string {
     if (n === null || n === undefined) n = 0;
     return `${n} ${n > 1 ? plural : singular}`;
+  }
+
+  // + AJOUTER - Feedback Methods
+
+  /**
+   * Pré-charge l'éligibilité feedback pour une mission
+   */
+  private prefetchFeedbackEligibility(missionId: number): void {
+    console.group(`[Feedback] Vérification éligibilité pour mission ${missionId}`);
+    console.log('🎯 Mission ID:', missionId);
+    console.log('🌐 Appel API: GET /api/feedback/eligibility?missionId=' + missionId);
+    console.groupEnd();
+    
+    this.feedbackApi.eligibility(missionId).subscribe({
+      next: (e) => {
+        console.log(`[Feedback] ✅ Éligibilité mission ${missionId}:`, e);
+        this.feedbackEligibility.update(map => ({ ...map, [missionId]: e }));
+        
+        // 🔥 CORRECTION : Toujours charger les données de feedback si éligible
+        if (e.eligible) {
+          console.log(`[Feedback] 🔥 Mission ${missionId} éligible, chargement des données de feedback`);
+          this.loadFeedbackData(missionId);
+        }
+      },
+      error: (err) => {
+        console.error(`[Feedback] ❌ Erreur éligibilité mission ${missionId}:`, err);
+        console.error('🌐 URL appelée:', `GET /api/feedback/eligibility?missionId=${missionId}`);
+      }
+    });
+  }
+
+  /**
+   * Charge la fenêtre feedback pour une mission
+   */
+  private loadFeedbackWindow(missionId: number): void {
+    console.group(`[Feedback] Chargement fenêtre pour mission ${missionId}`);
+    console.log('🎯 Mission ID:', missionId);
+    console.log('🌐 Appel API: GET /api/feedback/window?missionId=' + missionId);
+    console.groupEnd();
+    
+    this.feedbackApi.window(missionId).subscribe({
+      next: (w) => {
+        console.log(`[Feedback] ✅ Fenêtre mission ${missionId}:`, w);
+        this.feedbackWindow.update(map => ({ ...map, [missionId]: w }));
+        
+        // 🔥 CORRECTION : Vérifier si on peut ouvrir le modal de vue
+        this.checkAndOpenViewModal(missionId);
+      },
+      error: (err) => {
+        console.error(`[Feedback] ❌ Erreur fenêtre mission ${missionId}:`, err);
+        console.error('🌐 URL appelée:', `GET /api/feedback/window?missionId=${missionId}`);
+      }
+    });
+  }
+
+  /**
+   * Vérifie si toutes les données nécessaires sont chargées et ouvre le modal de vue si approprié
+   */
+  private checkAndOpenViewModal(missionId: number): void {
+    const feedback = this.feedbackData()[missionId];
+    const window = this.feedbackWindow()[missionId];
+    const mission = this.selectedMissionForFeedback();
+    
+    console.log(`[Feedback] 🔍 Vérification ouverture modal pour mission ${missionId}:`, {
+      hasFeedback: !!feedback,
+      hasWindow: !!window,
+      modalMode: this.feedbackModalMode(),
+      isModalOpen: this.isFeedbackModalOpen(),
+      mission: mission ? { id: mission.id, titre: mission.titre } : null
+    });
+    
+    // Ouvrir le modal seulement si :
+    // 1. On est en mode 'view'
+    // 2. Le modal n'est pas déjà ouvert
+    // 3. On a une mission sélectionnée
+    // 4. On a les données de feedback (la fenêtre peut être optionnelle pour l'affichage)
+    if (this.feedbackModalMode() === 'view' && 
+        !this.isFeedbackModalOpen() && 
+        mission && 
+        mission.id === missionId && 
+        feedback) {
+      
+      console.log('[Feedback] 🎯 Ouverture automatique du modal de vue après chargement complet');
+      this.isFeedbackModalOpen.set(true);
+      
+      // Log final pour debug
+      setTimeout(() => {
+        console.log('[Feedback] 📊 État final après ouverture modal:', {
+          missionId,
+          feedbackData: this.feedbackData()[missionId],
+          feedbackWindow: this.feedbackWindow()[missionId],
+          canModify: this.canModifyFeedback(mission),
+          modalOpen: this.isFeedbackModalOpen(),
+          modalMode: this.feedbackModalMode()
+        });
+      }, 100);
+    }
+  }
+
+  /**
+   * Vérifie si une mission est éligible au feedback
+   */
+  isFeedbackEligible(m: MissionView): boolean {
+    const e = this.feedbackEligibility()[m.id];
+    // Par design: bouton seulement si mission prête/terminée ET eligible renvoyé par le back
+    const statutOK = m.statut === MissionStatut.PRET_A_CLOTURER || m.statut === MissionStatut.TERMINEE;
+    return !!e?.eligible && statutOK;
+  }
+
+  /**
+   * Vérifie si un feedback existe pour une mission
+   */
+  hasFeedback(m: MissionView): boolean {
+    const feedback = this.feedbackData()[m.id];
+    const hasFeedback = !!feedback;
+    
+    // 🔥 CORRECTION : Logs détaillés pour debug
+    console.log(`[Feedback] hasFeedback pour mission ${m.id}:`, {
+      missionId: m.id,
+      missionStatut: m.statut,
+      feedback: feedback ? {
+        id: feedback.id,
+        submittedAt: feedback.submittedAt,
+        publishedAt: feedback.publishedAt,
+        overallRating: feedback.overallRating
+      } : null,
+      hasFeedback,
+      feedbackDataKeys: Object.keys(this.feedbackData()),
+      allFeedbackData: this.feedbackData()
+    });
+    
+    return hasFeedback;
+  }
+
+  /**
+   * Vérifie si un feedback peut être modifié
+   */
+  canModifyFeedback(m: MissionView): boolean {
+    const feedback = this.feedbackData()[m.id];
+    const window = this.feedbackWindow()[m.id];
+    
+    console.log(`[Feedback] 🔍 canModifyFeedback pour mission ${m.id}:`, {
+      hasFeedback: !!feedback,
+      hasWindow: !!window,
+      feedback: feedback ? {
+        id: feedback.id,
+        publishedAt: feedback.publishedAt,
+        submittedAt: feedback.submittedAt
+      } : null,
+      window: window ? {
+        expiresAt: window.expiresAt,
+        openedAt: window.openedAt
+      } : null
+    });
+    
+    if (!feedback || !window) {
+      console.log(`[Feedback] ❌ canModifyFeedback = false (données manquantes)`);
+      return false;
+    }
+    
+    // Vérifier que la fenêtre n'est pas expirée
+    const now = new Date();
+    const expiresAt = new Date(window.expiresAt);
+    const isWindowOpen = now < expiresAt;
+    
+    // Vérifier que le feedback n'est pas déjà publié
+    const isNotPublished = !feedback.publishedAt;
+    
+    const result = isWindowOpen && isNotPublished;
+    
+    console.log(`[Feedback] 🔍 canModifyFeedback calcul:`, {
+      now: now.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      isWindowOpen,
+      isNotPublished,
+      result
+    });
+    
+    return result;
+  }
+
+  /**
+   * Vérifie si un feedback peut être supprimé
+   */
+  canDeleteFeedback(m: MissionView): boolean {
+    return this.canModifyFeedback(m); // Mêmes conditions que la modification
+  }
+
+  /**
+   * Ouvre la modale de feedback (création)
+   */
+  openFeedbackModal(mission: MissionView): void {
+    console.group('[Feedback] Ouverture modale de création');
+    console.log('📋 Mission sélectionnée:', {
+      id: mission.id,
+      titre: mission.titre,
+      statut: mission.statut,
+      freelanceSelectionneId: (mission as any).freelanceSelectionneId,
+      freelance: mission.freelance,
+      clientId: mission.clientId
+    });
+    console.log('👤 Current user:', {
+      id: this.currentUser?.id,
+      nom: this.currentUser?.nom,
+      prenom: this.currentUser?.prenom,
+      typeUtilisateur: this.currentUser?.typeUtilisateur
+    });
+    console.groupEnd();
+
+    this.selectedMissionForFeedback.set(mission);
+    this.feedbackModalMode.set('create');
+    this.isFeedbackModalOpen.set(true);
+
+    // Charge la fenêtre / souscris au temps réel pour cette mission
+    this.loadFeedbackWindow(mission.id);
+    this.feedbackSocket.connect(); // idempotent
+
+    // S'abonner aux publications en temps réel
+    this.feedbackSocket.subscribeToPublished(mission.id).subscribe(() => {
+      // feedback publié → on peut rafraîchir la fenêtre/éligibilité
+      this.prefetchFeedbackEligibility(mission.id);
+      this.loadFeedbackWindow(mission.id);
+    });
+  }
+
+  /**
+   * Ferme la modale de feedback
+   */
+  closeFeedbackModal(): void {
+    const mission = this.selectedMissionForFeedback();
+    
+    console.log('[Feedback] Fermeture modale pour mission:', mission?.id);
+    
+    this.isFeedbackModalOpen.set(false);
+    this.selectedMissionForFeedback.set(null);
+    this.feedbackModalMode.set('create');
+    
+    // 🔥 CORRECTION : Forcer le rechargement des données si on a une mission
+    if (mission) {
+      setTimeout(() => {
+        console.log('[Feedback] 🔄 Rechargement après fermeture modale pour mission:', mission.id);
+        this.refreshFeedbackData(mission.id);
+        
+        // Vérifier l'état après rechargement
+        setTimeout(() => {
+          console.log('[Feedback] ✅ État final après fermeture modale:', {
+            missionId: mission.id,
+            feedbackData: this.feedbackData()[mission.id],
+            hasFeedback: this.hasFeedback(mission),
+            actions: this.getFeedbackActions(mission)
+          });
+        }, 300);
+      }, 100); // Délai réduit pour une meilleure réactivité
+    }
+  }
+
+  /**
+   * Obtient le mode de la modale de feedback
+   */
+  getFeedbackModalMode(): 'create' | 'view' | 'edit' {
+    return this.feedbackModalMode();
+  }
+
+  /**
+   * Obtient le titre de la modale de feedback
+   */
+  getFeedbackModalTitle(): string {
+    switch (this.feedbackModalMode()) {
+      case 'create': return 'Donner un avis';
+      case 'view': return 'Voir mon avis';
+      case 'edit': return 'Modifier mon avis';
+      default: return 'Feedback';
+    }
+  }
+
+  /**
+   * Charge le feedback existant pour une mission
+   */
+  private loadFeedbackData(missionId: number): void {
+    console.group(`[Feedback] 🔄 Chargement feedback pour mission ${missionId}`);
+    console.log('🎯 Mission ID:', missionId);
+    console.log('🌐 Appel API: GET /api/feedback/by-mission/{missionId}');
+    console.log('📊 État avant chargement:', {
+      currentFeedbackData: this.feedbackData(),
+      hasExistingData: !!this.feedbackData()[missionId],
+      allFeedbackDataKeys: Object.keys(this.feedbackData()),
+      modalMode: this.feedbackModalMode(),
+      isModalOpen: this.isFeedbackModalOpen()
+    });
+    console.groupEnd();
+    
+    this.feedbackApi.getFeedbackByMission(missionId).subscribe({
+      next: (feedback) => {
+        console.group(`[Feedback] ✅ Feedback chargé pour mission ${missionId}`);
+        console.log('📋 Feedback reçu:', {
+          id: feedback.id,
+          missionId: feedback.missionId,
+          submittedAt: feedback.submittedAt,
+          publishedAt: feedback.publishedAt,
+          overallRating: feedback.overallRating,
+          comment: feedback.comment?.substring(0, 50) + '...'
+        });
+        
+        // 🔥 CORRECTION : Mettre à jour les données avec logs détaillés
+        this.feedbackData.update(map => {
+          const newMap = { ...map, [missionId]: feedback };
+          console.log(`[Feedback] 📊 Nouveau feedbackData après chargement:`, {
+            missionId,
+            newMap,
+            allKeys: Object.keys(newMap)
+          });
+          return newMap;
+        });
+        
+        // 🔥 CORRECTION : Vérifier si on peut ouvrir le modal de vue
+        this.checkAndOpenViewModal(missionId);
+        
+        // Vérifier immédiatement après la mise à jour
+        setTimeout(() => {
+          console.log(`[Feedback] 📊 Vérification après chargement:`, {
+            missionId,
+            feedbackData: this.feedbackData()[missionId],
+            hasFeedback: this.hasFeedback({ id: missionId } as MissionView),
+            actions: this.getFeedbackActions({ id: missionId } as MissionView),
+            modalOpen: this.isFeedbackModalOpen(),
+            modalMode: this.feedbackModalMode()
+          });
+          console.groupEnd();
+        }, 50);
+      },
+      error: (err) => {
+        console.group(`[Feedback] ❌ Erreur chargement feedback mission ${missionId}`);
+        console.error('🌐 URL appelée:', `GET /api/feedback/by-mission/${missionId}`);
+        console.error('❌ Status:', err.status);
+        console.error('❌ Message:', err.message);
+        console.error('❌ Détail erreur:', err.error);
+        
+        // Si 404, c'est normal (pas de feedback encore)
+        if (err.status === 404) {
+          console.log(`[Feedback] ℹ️ Aucun feedback trouvé pour mission ${missionId} (normal si pas encore soumis)`);
+        } else {
+          console.error('❌ Erreur inattendue:', err);
+        }
+        console.groupEnd();
+      }
+    });
+  }
+
+  /**
+   * Ouvre la modale de lecture du feedback
+   */
+  openFeedbackViewModal(mission: MissionView): void {
+    console.group('[Feedback] Ouverture modale de lecture');
+    console.log('📋 Mission sélectionnée:', {
+      id: mission.id,
+      titre: mission.titre,
+      statut: mission.statut
+    });
+    console.log('📊 Données de feedback existantes:', this.feedbackData()[mission.id]);
+    console.log('📊 Fenêtre de feedback existante:', this.feedbackWindow()[mission.id]);
+    console.groupEnd();
+
+    this.selectedMissionForFeedback.set(mission);
+    this.feedbackModalMode.set('view');
+
+    // 🔥 CORRECTION : Vérifier si TOUTES les données sont déjà chargées
+    const existingFeedback = this.feedbackData()[mission.id];
+    const existingWindow = this.feedbackWindow()[mission.id];
+    
+    if (existingFeedback && existingWindow) {
+      console.log('[Feedback] ✅ Toutes les données déjà chargées, ouverture immédiate du modal');
+      console.log('[Feedback] 🔍 canModifyFeedback:', this.canModifyFeedback(mission));
+      this.isFeedbackModalOpen.set(true);
+    } else {
+      console.log('[Feedback] ⏳ Données manquantes, chargement avant ouverture');
+      console.log('[Feedback] 📊 État des données:', {
+        hasFeedback: !!existingFeedback,
+        hasWindow: !!existingWindow
+      });
+      
+      // 🔥 CORRECTION : Charger les deux types de données nécessaires
+      this.loadFeedbackData(mission.id);
+      this.loadFeedbackWindow(mission.id);
+      
+      // Le modal s'ouvrira automatiquement après le chargement des données
+    }
+  }
+
+  /**
+   * Ouvre la modale de modification du feedback
+   */
+  openFeedbackEditModal(mission: MissionView): void {
+    console.group('[Feedback] Ouverture modale de modification');
+    console.log('📋 Mission sélectionnée:', {
+      id: mission.id,
+      titre: mission.titre,
+      statut: mission.statut
+    });
+    console.groupEnd();
+
+    const feedback = this.feedbackData()[mission.id];
+    if (!feedback) {
+      console.error('[Feedback] Aucun feedback trouvé pour la mission', mission.id);
+      alert('Aucun feedback trouvé pour cette mission.');
+      return;
+    }
+
+    this.selectedMissionForFeedback.set(mission);
+    this.feedbackModalMode.set('edit');
+    this.isFeedbackModalOpen.set(true);
+
+    // Pré-remplir le formulaire avec les données actuelles
+    this.populateFeedbackForm(feedback);
+  }
+
+  /**
+   * Pré-remplit le formulaire avec les données du feedback (avec coercition robuste)
+   */
+  private populateFeedbackForm(feedback: FeedbackResponse): void {
+    console.group('[Feedback] Pré-remplissage du formulaire avec coercition');
+    console.log('📝 Feedback à pré-remplir:', {
+      id: feedback.id,
+      overallRating: feedback.overallRating,
+      comment: feedback.comment?.substring(0, 50) + '...',
+      submittedAt: feedback.submittedAt
+    });
+    
+    // 🔥 CORRECTION : Clamp robuste pour chaque score
+    const clamp = (n: any) => Math.max(1, Math.min(5, Number(n) || 1));
+    const base = clamp(feedback.overallRating);
+    
+    // Récupérer les valeurs actuelles du formulaire ou utiliser la base
+    const currentValues = this.feedbackForm.value;
+    
+    this.feedbackForm.patchValue({
+      quality: clamp(currentValues?.quality ?? base),
+      timeliness: clamp(currentValues?.timeliness ?? base),
+      communication: clamp(currentValues?.communication ?? base),
+      technical: clamp(currentValues?.technical ?? base),
+      global: clamp(currentValues?.global ?? base),
+      comment: feedback.comment || ''
+    });
+    
+    console.log('📝 Formulaire pré-rempli avec clamp robuste:', {
+      quality: clamp(currentValues?.quality ?? base),
+      timeliness: clamp(currentValues?.timeliness ?? base),
+      communication: clamp(currentValues?.communication ?? base),
+      technical: clamp(currentValues?.technical ?? base),
+      global: clamp(currentValues?.global ?? base),
+      comment: feedback.comment?.substring(0, 50) + '...'
+    });
+    console.groupEnd();
+  }
+
+  /**
+   * Met à jour le feedback
+   */
+  updateFeedback(): void {
+    const mission = this.selectedMissionForFeedback();
+    
+    // 🔥 CORRECTION : Validation renforcée avec message clair
+    if (!mission) {
+      console.group('[Feedback] Validation échouée - Mission manquante');
+      console.log('❌ Mission:', mission);
+      console.groupEnd();
+      return;
+    }
+    
+    if (this.feedbackForm.invalid) {
+      console.group('[Feedback] Validation échouée - Formulaire invalide pour modification');
+      console.log('❌ Form valid:', this.feedbackForm.valid);
+      console.log('❌ Form errors:', this.feedbackForm.errors);
+      console.log('❌ Form values:', this.feedbackForm.value);
+      
+      // Vérifier spécifiquement les scores
+      const scores = this.feedbackForm.value;
+      const invalidScores = [];
+      if (scores.quality < 1 || scores.quality > 5) invalidScores.push('Qualité');
+      if (scores.timeliness < 1 || scores.timeliness > 5) invalidScores.push('Respect des délais');
+      if (scores.communication < 1 || scores.communication > 5) invalidScores.push('Communication');
+      if (scores.technical < 1 || scores.technical > 5) invalidScores.push('Technique');
+      if (scores.global < 1 || scores.global > 5) invalidScores.push('Appréciation globale');
+      
+      if (invalidScores.length > 0) {
+        alert(`Tous les scores doivent être entre 1 et 5. Problèmes détectés : ${invalidScores.join(', ')}`);
+      } else {
+        alert('Veuillez remplir tous les champs correctement.');
+      }
+      console.groupEnd();
+      return;
+    }
+
+    const feedback = this.feedbackData()[mission.id];
+    if (!feedback) {
+      console.error('[Feedback] Aucun feedback trouvé pour la mission', mission.id);
+      alert('Aucun feedback trouvé pour cette mission.');
+      return;
+    }
+
+    const updateRequest: FeedbackUpdateRequest = {
+      comment: this.feedbackForm.value.comment,
+      scores: this.buildScoresFromForm(),
+      idempotencyKey: generateIdempotencyKey()
+    };
+
+    // 🔥 CORRECTION : Logs de debug détaillés pour le payload
+    console.group('[Feedback] Mise à jour du feedback');
+    console.log('🌐 URL complète: PUT /api/feedback/' + feedback.id);
+    console.log('📤 Payload envoyé au backend:', updateRequest);
+    console.log('📤 Payload JSON:', JSON.stringify(updateRequest, null, 2));
+    console.log('📊 Form values avant envoi:', this.feedbackForm.value);
+    console.log('📊 Scores construits:', this.buildScoresFromForm());
+    console.log('🔑 Headers attendus: X-Idempotency-Key: ' + updateRequest.idempotencyKey);
+    console.log('🍪 WithCredentials: true');
+    console.groupEnd();
+
+    // 🔥 GARDE-FOU : Vérification finale des scores avant envoi
+    console.group('[Feedback] 🔍 GARDE-FOU - Vérification finale des scores (UPDATE)');
+    const finalScores = updateRequest.scores;
+    const invalidScores = finalScores.filter(s => s.score < 1 || s.score > 5 || !Number.isInteger(s.score));
+    if (invalidScores.length > 0) {
+      console.error('[Feedback] ❌ ERREUR CRITIQUE : Scores invalides détectés avant envoi:', invalidScores);
+      console.error('[Feedback] ❌ Arrêt de l\'envoi pour éviter ConstraintViolationException');
+      alert('Erreur : Scores invalides détectés. Veuillez réessayer.');
+      return;
+    }
+    console.log('[Feedback] ✅ Tous les scores sont valides:', finalScores.map(s => `${s.criterion}=${s.score}`));
+    console.groupEnd();
+
+    this.isSubmittingFeedback.set(true);
+    this.feedbackApi.updateFeedback(feedback.id, updateRequest, { idempotencyKey: updateRequest.idempotencyKey }).subscribe({
+      next: (res) => {
+        console.group('[Feedback] Mise à jour OK');
+        console.log('✅ Réponse du backend:', res);
+        console.groupEnd();
+        
+        this.isSubmittingFeedback.set(false);
+        // Mettre à jour les données locales
+        this.feedbackData.update(map => ({ ...map, [mission.id]: res }));
+        this.closeFeedbackModal();
+        alert('Votre avis a été modifié avec succès.');
+      },
+      error: (err) => {
+        console.group('[Feedback] Erreur mise à jour');
+        console.error('🌐 URL appelée: PUT /api/feedback/' + feedback.id);
+        console.error('❌ Status:', err.status);
+        console.error('❌ Message:', err.message);
+        console.error('❌ Détail erreur:', err.error);
+        console.error('📤 Payload envoyé:', updateRequest);
+        console.groupEnd();
+        
+        this.isSubmittingFeedback.set(false);
+        alert(err?.error?.message || 'Erreur lors de la modification du feedback.');
+      }
+    });
+  }
+
+  /**
+   * Supprime le feedback
+   */
+  deleteFeedback(mission: MissionView): void {
+    const feedback = this.feedbackData()[mission.id];
+    if (!feedback) {
+      console.error('[Feedback] Aucun feedback trouvé pour la mission', mission.id);
+      alert('Aucun feedback trouvé pour cette mission.');
+      return;
+    }
+
+    const confirmed = confirm('Êtes-vous sûr de vouloir supprimer votre avis ? Cette action est irréversible.');
+    if (!confirmed) {
+      return;
+    }
+
+    console.group('[Feedback] Suppression du feedback');
+    console.log('🌐 URL complète: DELETE /api/feedback/' + feedback.id);
+    console.log('🍪 WithCredentials: true');
+    console.groupEnd();
+
+    this.feedbackApi.deleteFeedback(feedback.id).subscribe({
+      next: () => {
+        console.group('[Feedback] Suppression OK');
+        console.log('✅ Feedback supprimé avec succès');
+        console.groupEnd();
+        
+        // Supprimer des données locales
+        this.feedbackData.update(map => {
+          const newMap = { ...map };
+          delete newMap[mission.id];
+          return newMap;
+        });
+        
+        // Rafraîchir l'éligibilité
+        this.prefetchFeedbackEligibility(mission.id);
+        this.loadFeedbackWindow(mission.id);
+        
+        alert('Votre avis a été supprimé avec succès.');
+      },
+      error: (err) => {
+        console.group('[Feedback] Erreur suppression');
+        console.error('🌐 URL appelée: DELETE /api/feedback/' + feedback.id);
+        console.error('❌ Status:', err.status);
+        console.error('❌ Message:', err.message);
+        console.error('❌ Détail erreur:', err.error);
+        console.groupEnd();
+        
+        alert(err?.error?.message || 'Erreur lors de la suppression du feedback.');
+      }
+    });
+  }
+
+  /**
+   * Coerce une valeur en score valide (1-5)
+   */
+  private coerceScore(v: any): number {
+    const n = Number(v);
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(1, Math.min(5, Math.trunc(n)));
+  }
+
+  /**
+   * Construit les scores à partir du formulaire avec coercition robuste
+   */
+  private buildScoresFromForm(): ScoreItem[] {
+    const f = this.feedbackForm.value;
+    const scores = [
+      { criterion: CriterionType.QUALITY,       score: this.coerceScore(f.quality) },
+      { criterion: CriterionType.TIMELINESS,    score: this.coerceScore(f.timeliness) },
+      { criterion: CriterionType.COMMUNICATION, score: this.coerceScore(f.communication) },
+      { criterion: CriterionType.TECHNICAL,     score: this.coerceScore(f.technical) },
+      { criterion: CriterionType.GLOBAL,        score: this.coerceScore(f.global) },
+    ];
+    
+    console.log('[Feedback] Scores construits avec coercition:', scores);
+    console.log('[Feedback] Form values bruts:', f);
+    
+    // 🔥 GARDE-FOU : Vérifier qu'aucun score n'est invalide
+    const invalidScores = scores.filter(s => s.score < 1 || s.score > 5);
+    if (invalidScores.length > 0) {
+      console.error('[Feedback] ❌ ERREUR : Scores invalides détectés:', invalidScores);
+      throw new Error(`Scores invalides détectés: ${invalidScores.map(s => `${s.criterion}=${s.score}`).join(', ')}`);
+    }
+    
+    return scores;
+  }
+
+  /**
+   * Soumet le feedback
+   */
+  submitFeedback(): void {
+    const mission = this.selectedMissionForFeedback();
+    
+    // 🔥 CORRECTION : Validation renforcée avec message clair
+    if (!mission || !this.currentUser) {
+      console.group('[Feedback] Validation échouée - Données manquantes');
+      console.log('❌ Mission:', mission);
+      console.log('❌ Current user:', this.currentUser);
+      console.groupEnd();
+      return;
+    }
+    
+    if (this.feedbackForm.invalid) {
+      console.group('[Feedback] Validation échouée - Formulaire invalide');
+      console.log('❌ Form valid:', this.feedbackForm.valid);
+      console.log('❌ Form errors:', this.feedbackForm.errors);
+      console.log('❌ Form values:', this.feedbackForm.value);
+      
+      // Vérifier spécifiquement les scores
+      const scores = this.feedbackForm.value;
+      const invalidScores = [];
+      if (scores.quality < 1 || scores.quality > 5) invalidScores.push('Qualité');
+      if (scores.timeliness < 1 || scores.timeliness > 5) invalidScores.push('Respect des délais');
+      if (scores.communication < 1 || scores.communication > 5) invalidScores.push('Communication');
+      if (scores.technical < 1 || scores.technical > 5) invalidScores.push('Technique');
+      if (scores.global < 1 || scores.global > 5) invalidScores.push('Appréciation globale');
+      
+      if (invalidScores.length > 0) {
+        alert(`Tous les scores doivent être entre 1 et 5. Problèmes détectés : ${invalidScores.join(', ')}`);
+      } else {
+        alert('Veuillez remplir tous les champs correctement.');
+      }
+      console.groupEnd();
+      return;
+    }
+
+    const targetId = (mission as any).freelanceSelectionneId || mission.freelance?.id;
+    if (!targetId) { 
+      console.group('[Feedback] Pas de freelance');
+      console.log('❌ Mission object:', mission);
+      console.log('❌ freelanceSelectionneId:', (mission as any).freelanceSelectionneId);
+      console.log('❌ mission.freelance:', mission.freelance);
+      console.log('❌ mission.freelance?.id:', mission.freelance?.id);
+      console.groupEnd();
+      alert('Aucun freelance sélectionné.'); 
+      return; 
+    }
+
+    const payload: FeedbackCreateRequest = {
+      missionId: mission.id,
+      targetId,
+      role: FeedbackRole.CLIENT_TO_FREELANCER,
+      scores: this.buildScoresFromForm(),
+      comment: this.feedbackForm.value.comment,
+      idempotencyKey: generateIdempotencyKey()
+    };
+
+    // 🔥 CORRECTION : Logs de debug détaillés pour le payload
+    console.group('[Feedback] Soumission');
+    console.log('🌐 URL complète: POST /api/feedback/submit');
+    console.log('📤 Payload envoyé au backend:', payload);
+    console.log('📤 Payload JSON:', JSON.stringify(payload, null, 2));
+    console.log('📊 Form values avant envoi:', this.feedbackForm.value);
+    console.log('📊 Scores construits:', this.buildScoresFromForm());
+    console.log('➡ missionId:', payload.missionId);
+    console.log('➡ targetId:', payload.targetId);
+    console.log('➡ role:', payload.role);
+    console.log('➡ scores:', payload.scores);
+    console.log('➡ comment:', payload.comment);
+    console.log('➡ idempotencyKey:', payload.idempotencyKey);
+    console.log('📋 Mission source:', {
+      id: mission.id,
+      titre: mission.titre,
+      statut: mission.statut,
+      freelanceSelectionneId: (mission as any).freelanceSelectionneId,
+      freelance: mission.freelance
+    });
+    console.log('👤 Current user:', {
+      id: this.currentUser.id,
+      nom: this.currentUser.nom,
+      prenom: this.currentUser.prenom,
+      typeUtilisateur: this.currentUser.typeUtilisateur
+    });
+    console.log('📝 Form values:', this.feedbackForm.value);
+    console.log('🔑 Headers attendus: X-Idempotency-Key: ' + payload.idempotencyKey);
+    console.log('🍪 WithCredentials: true');
+    console.groupEnd();
+
+    // 🔥 GARDE-FOU : Vérification finale des scores avant envoi
+    console.group('[Feedback] 🔍 GARDE-FOU - Vérification finale des scores');
+    const finalScores = payload.scores;
+    const invalidScores = finalScores.filter(s => s.score < 1 || s.score > 5 || !Number.isInteger(s.score));
+    if (invalidScores.length > 0) {
+      console.error('[Feedback] ❌ ERREUR CRITIQUE : Scores invalides détectés avant envoi:', invalidScores);
+      console.error('[Feedback] ❌ Arrêt de l\'envoi pour éviter ConstraintViolationException');
+      alert('Erreur : Scores invalides détectés. Veuillez réessayer.');
+      return;
+    }
+    console.log('[Feedback] ✅ Tous les scores sont valides:', finalScores.map(s => `${s.criterion}=${s.score}`));
+    console.groupEnd();
+
+    this.isSubmittingFeedback.set(true);
+    this.feedbackApi.submit(payload, { idempotencyKey: payload.idempotencyKey }).subscribe({
+      next: (res) => {
+        console.group('[Feedback] Réponse OK');
+        console.log('✅ Réponse du backend:', res);
+        console.groupEnd();
+        
+        this.isSubmittingFeedback.set(false);
+        
+        // 🔥 CORRECTION 1: Mettre à jour les données locales avec la réponse
+        console.log('[Feedback] Avant mise à jour feedbackData:', {
+          missionId: mission.id,
+          currentFeedbackData: this.feedbackData(),
+          responseFromBackend: res
+        });
+        
+        this.feedbackData.update(map => {
+          const newMap = { ...map, [mission.id]: res };
+          console.log('[Feedback] Nouveau feedbackData après update:', newMap);
+          return newMap;
+        });
+        
+        // Vérifier immédiatement après la mise à jour
+        console.log('[Feedback] Vérification immédiate après update:', {
+          missionId: mission.id,
+          feedbackData: this.feedbackData()[mission.id],
+          hasFeedback: this.hasFeedback(mission),
+          actions: this.getFeedbackActions(mission)
+        });
+        
+        // 🔥 CORRECTION 2: Rafraîchir éligibilité & fenêtre
+        this.prefetchFeedbackEligibility(mission.id);
+        this.loadFeedbackWindow(mission.id);
+        
+        // 🔥 CORRECTION 3: Log final avec délai pour s'assurer que les données sont mises à jour
+        setTimeout(() => {
+          console.log('[Feedback] ✅ Données mises à jour après soumission:', {
+            missionId: mission.id,
+            feedbackData: this.feedbackData()[mission.id],
+            hasFeedback: this.hasFeedback(mission),
+            actions: this.getFeedbackActions(mission)
+          });
+          
+          // Fermer la modale après vérification
+          this.closeFeedbackModal();
+          alert('Votre avis a été soumis. Publication en double-aveugle dès que l\'autre partie soumet, ou auto-publication à J+14.');
+        }, 200); // Délai réduit mais suffisant
+      },
+      error: (err) => {
+        console.group('[Feedback] Erreur backend');
+        console.error('🌐 URL appelée: POST /api/feedback/submit');
+        console.error('❌ Status:', err.status);
+        console.error('❌ Status Text:', err.statusText);
+        console.error('❌ Message:', err.message);
+        console.error('❌ URL complète:', err.url);
+        console.error('❌ Détail erreur:', err.error);
+        console.error('❌ Headers réponse:', err.headers);
+        console.error('❌ Erreur complète:', err);
+        console.error('📤 Payload envoyé:', payload);
+        console.error('🔑 Headers envoyés: X-Idempotency-Key: ' + payload.idempotencyKey);
+        console.groupEnd();
+        
+        this.isSubmittingFeedback.set(false);
+        alert(err?.error?.message || 'Erreur lors de la soumission du feedback.');
+      }
+    });
   }
 }

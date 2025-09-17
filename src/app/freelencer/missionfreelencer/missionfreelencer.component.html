@@ -1,132 +1,244 @@
-<div class="missions-container">
-  <div class="missions-controls">
-    <!-- Filtres de statut -->
-    <div class="status-filters">
-      <button 
-        *ngFor="let status of statuses"
-        [class.active]="statusFilter === status"
-        (click)="selectStatus(status)">
-        {{ status }}
+<div class="missions-container" [class.blurred]="isDetailModalOpen">
+  
+  <!-- === HEADER SECTION === -->
+  <header class="missions-header toolbar">
+    <div class="segmented">
+      <button class="sort-option" 
+              [class.active]="sortBy === 'delaiLivraison'"
+              (click)="updateSortBy('delaiLivraison')">
+        <fa-icon [icon]="faCalendarAlt" class="sort-icon"></fa-icon>
+        <span>Deadline</span>
+      </button>
+      <button class="sort-option" 
+              [class.active]="sortBy === 'budget'"
+              (click)="updateSortBy('budget')">
+        <fa-icon [icon]="faMoneyBillWave" class="sort-icon"></fa-icon>
+        <span>Budget</span>
+      </button>
+      <button class="sort-option" 
+              [class.active]="sortBy === 'datePublication'"
+              (click)="updateSortBy('datePublication')">
+        <fa-icon [icon]="faClock" class="sort-icon"></fa-icon>
+        <span>Date de début</span>
       </button>
     </div>
+    
+    <div class="header-actions">
+      <button class="btn--primaryGrad" (click)="refreshMissions()">
+        <fa-icon [icon]="faSpinner" [class.fa-spin]="isLoading"></fa-icon>
+        <span>Actualiser</span>
+      </button>
+    </div>
+  </header>
 
-    <!-- Recherche et tri -->
+  <!-- === FILTERS SECTION === -->
+  <div class="missions-controls">
+    <div class="status-tabs segmented">
+      <button *ngFor="let status of statuses" 
+              [class.active]="statusFilter === status" 
+              (click)="selectStatus(status)"
+              class="seg-item">
+        <span>{{ status === 'Tous' ? 'Tous' : (status | titlecase) }}</span>
+        <span class="count" *ngIf="getStatusCount(status) > 0">{{ getStatusCount(status) }}</span>
+      </button>
+    </div>
+    
     <div class="search-sort">
       <div class="search-box">
-        <fa-icon [icon]="faSearch"></fa-icon>
-        <input 
-          type="text" 
-          placeholder="Rechercher par titre ou client..."
-          [(ngModel)]="searchTerm"
-          (ngModelChange)="filterAndSortMissions()">
+        <fa-icon [icon]="faSearch" class="search-icon"></fa-icon>
+        <input type="text" 
+               placeholder="Rechercher par titre ou client..." 
+               [(ngModel)]="searchTerm" 
+               (ngModelChange)="filterAndSortMissions()"
+               class="search-input">
       </div>
-      <div class="sort-box">
-        <select [(ngModel)]="sortBy" (ngModelChange)="filterAndSortMissions()">
-          <option *ngFor="let option of sortOptions" [value]="option.id">
-            Trier par : {{ option.name }}
-          </option>
-        </select>
-        <fa-icon [icon]="faChevronDown" class="sort-arrow"></fa-icon>
+      
+      <div class="filter-chips">
+        <button class="filter-chip" [class.active]="true">
+          <fa-icon [icon]="faFolderOpen"></fa-icon>
+          <span>Catégorie</span>
+        </button>
+        <button class="filter-chip">
+          <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+          <span>Budget</span>
+        </button>
+        <button class="filter-chip">
+          <fa-icon [icon]="faMapPin"></fa-icon>
+          <span>Localisation</span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Conteneur de la liste des missions -->
+  <!-- === MISSIONS GRID === -->
   <div class="missions-list">
-    <!-- État de chargement -->
+    <!-- Loading State -->
     <div *ngIf="isLoading" class="loading-indicator">
       <div class="spinner"></div>
-      <p>Chargement de vos missions...</p>
+      <h2>Chargement de vos missions...</h2>
+      <p>Nous récupérons vos projets en cours, un instant s'il vous plaît.</p>
     </div>
 
-    <!-- État vide -->
+    <!-- Empty State -->
     <div *ngIf="!isLoading && filteredMissions.length === 0" class="empty-state">
-        <fa-icon [icon]="faExclamationCircle"></fa-icon>
-        <h2>Aucune mission trouvée</h2>
-        <p>Il semble que vous n'ayez aucune mission correspondant à vos critères actuels.</p>
-        <button (click)="selectStatus('Tous'); searchTerm=''">Voir toutes les missions</button>
+      <fa-icon [icon]="faExclamationCircle" class="empty-icon"></fa-icon>
+      <h2>Aucune mission trouvée</h2>
+      <p>Il semble que vous n'ayez aucune mission correspondant à vos critères actuels.</p>
+      <button (click)="selectStatus('Tous'); searchTerm=''">
+        <span>Voir toutes les missions</span>
+      </button>
     </div>
 
-    <!-- Cartes de mission -->
-    <div class="mission-card" *ngFor="let mission of filteredMissions" [ngClass]="getStatusClass(mission.statut)">
-        <div class="card-header">
-            <h3>{{ mission.titre }}</h3>
-            <span class="status-pill" [ngClass]="getStatusClass(mission.statut)">
-              {{ mission.statut | titlecase }}
+    <!-- Mission Cards -->
+    <div *ngFor="let mission of filteredMissions; trackBy: trackByMissionId"
+         class="mission-card card"
+         [ngClass]="getCardStatusClass(mission.statut)">
+      
+      <!-- Card Header -->
+      <div class="card-header">
+        <div class="mission-title-section">
+          <h3 class="mission-title">{{ mission.titre }}</h3>
+          <div class="mission-meta">
+            <span class="chip chip--neutral">
+              {{ mission.categorie | titlecase }}
             </span>
+            <span class="chip">
+              <fa-icon [icon]="getStatusIcon(mission.statut)" [ngClass]="{
+                'icon--succ': mission.statut === 'TERMINEE',
+                'icon--info': mission.statut === 'EN_COURS' || mission.statut === 'EN_ATTENTE_VALIDATION',
+                'icon--warn': mission.statut === 'EN_ATTENTE' || mission.statut === 'EXPIREE',
+                'icon--brand': mission.statut === 'PRET_A_CLOTURER'
+              }"></fa-icon>
+              <span>{{ mission.statut | titlecase }}</span>
+            </span>
+            
+            <!-- Badge de matching score si disponible -->
+            <span class="chip chip--matching" *ngIf="mission.scoreMatching">
+              <fa-icon [icon]="faStar" class="icon"></fa-icon>
+              <span>{{ mission.scoreMatching }}% match</span>
+            </span>
+          </div>
         </div>
+        
+        <div class="mission-details">
+          <span class="chip">
+            <fa-icon [icon]="faMoneyBillWave" class="icon icon--succ"></fa-icon>
+            <span>{{ getBudgetDisplay(mission) }}</span>
+          </span>
+          <span class="chip">
+            <fa-icon [icon]="faCalendarAlt" class="icon icon--info"></fa-icon>
+            <span *ngIf="mission.delaiLivraison">
+              {{ mission.delaiLivraison | date:'dd/MM/yyyy' }}
+            </span>
+            <span *ngIf="!mission.delaiLivraison">-</span>
+          </span>
+        </div>
+      </div>
 
+      <!-- Client Assignment -->
+      <div class="client-info" *ngIf="mission.client; else noClient">
+        <img [src]="getClientPhotoUrl(mission.client)" 
+             [alt]="mission.client?.prenom + ' ' + mission.client?.nom"
+             class="client-avatar">
+        <div class="client-details">
+          <div class="client-name">{{ mission.client?.prenom }} {{ mission.client?.nom }}</div>
+          <div class="client-company">{{ mission.client?.nomEntreprise || 'Client Particulier' }}</div>
+          <div class="client-badges" *ngIf="mission.client?.listeBadges?.length">
+            <span class="chip" *ngFor="let badge of mission.client.listeBadges">
+              <fa-icon [icon]="faCheckCircle" class="icon icon--succ"></fa-icon>
+              <span>{{ badge }}</span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <ng-template #noClient>
         <div class="client-info">
-            <img [src]="getClientPhotoUrl(mission.client)" 
-                 alt="Avatar de {{ mission.client?.prenom }}" 
-                 class="client-avatar">
-            <div class="client-details">
-                <span class="client-name">{{ mission.client?.prenom }} {{ mission.client?.nom }}</span>
-                <span class="client-company">{{ mission.client?.nomEntreprise || 'Client Particulier' }}</span>
-            </div>
+          <div class="empty-assignment">
+            <span class="empty-text">Aucun client assigné</span>
+          </div>
         </div>
+      </ng-template>
 
-        <div class="mission-details-grid">
-            <div class="detail-item">
-                <fa-icon [icon]="faCalendarAlt"></fa-icon>
-                <span>Deadline</span>
-                <strong>{{ mission.delaiLivraison | date: 'dd/MM/yyyy' }}</strong>
-            </div>
-            <div class="detail-item">
-                <fa-icon [icon]="faMoneyBillWave"></fa-icon>
-                <span>Budget</span>
-                <strong>{{ mission.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
-            </div>
+      <!-- Progression & Milestones -->
+      <div class="mission-progression">
+        <div class="progress-header">
+          <span class="progress-label">Progression</span>
+          <span class="progress-percentage">{{ getProgressPercentage(mission) }}%</span>
         </div>
+        
+        <div class="progress">
+          <div class="progress__fill" [style.width.%]="getProgressPercentage(mission)"></div>
+        </div>
+        
+        <div class="milestone-chips">
+          <span class="chip">
+            <fa-icon [icon]="faCode" class="icon"></fa-icon>
+            <span>{{ mission.competencesRequises?.length || 0 }} compétences</span>
+          </span>
+          <span class="chip" *ngIf="mission.urgent">
+            <fa-icon [icon]="faExclamationCircle" class="icon--warn"></fa-icon>
+            <span>Urgent</span>
+          </span>
+          <span class="chip" *ngIf="mission.modaliteTravail">
+            <fa-icon [icon]="faMapPin" class="icon"></fa-icon>
+            <span>{{ getModaliteLabel(mission.modaliteTravail) }}</span>
+          </span>
+        </div>
+      </div>
 
-        <div class="card-actions">
-            <button class="btn btn-secondary">
-                <fa-icon [icon]="faEye"></fa-icon>
-                <span>Détails</span>
-            </button>
-            <button class="btn btn-primary" [disabled]="mission.statut !== 'EN_COURS'" (click)="openDeliveryForm(mission)">
-                <fa-icon [icon]="faUpload"></fa-icon>
-                <span>Livrer</span>
-            </button>
-        </div>
+      <!-- Card Actions -->
+      <div class="card-actions">
+        <button class="btn btn--outline" (click)="openMissionDetail(mission)">
+          <fa-icon [icon]="faEye"></fa-icon>
+          <span>Détails</span>
+        </button>
+        
+        <button *ngIf="mission.statut === 'EN_ATTENTE'" 
+                class="btn btn--cta"
+                (click)="acceptMission(mission)">
+          <fa-icon [icon]="faCheckCircle"></fa-icon>
+          <span>Accepter</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- ================================================================= -->
-<!-- ==               ✨ MODAL DE LIVRAISON ✨                      == -->
-<!-- ================================================================= -->
+<!-- === MODAL BACKDROP === -->
 <div class="modal-backdrop" *ngIf="isDeliveryModalOpen">
-  <div class="livrable-modal" (click)="$event.stopPropagation()"> <!-- Empêche la fermeture au clic intérieur -->
+  
+  <!-- Delivery Modal -->
+  <div class="livrable-modal" *ngIf="isDeliveryModalOpen" (click)="$event.stopPropagation()">
     
-    <!-- Résumé de la Mission en Haut -->
+    <!-- Mission Summary Header -->
     <div class="mission-summary-header" *ngIf="currentMissionForDelivery">
-        <div class="mission-title">
-            <h3>{{ currentMissionForDelivery.titre }}</h3>
-            <span class="status-pill" [ngClass]="getStatusClass(currentMissionForDelivery.statut)">
-                {{ currentMissionForDelivery.statut | titlecase }}
-            </span>
+      <div class="mission-title">
+        <h3>{{ currentMissionForDelivery.titre }}</h3>
+        <span class="status-pill" [ngClass]="getStatusClass(currentMissionForDelivery.statut)">
+          {{ currentMissionForDelivery.statut | titlecase }}
+        </span>
+      </div>
+      <div class="mission-meta">
+        <div class="meta-item">
+          <fa-icon [icon]="faUserCircle"></fa-icon>
+          <span>{{ currentMissionForDelivery.client?.prenom }} {{ currentMissionForDelivery.client?.nom }}</span>
         </div>
-        <div class="mission-meta">
-            <div class="meta-item">
-                <fa-icon [icon]="faUserCircle"></fa-icon>
-                <span>{{ currentMissionForDelivery.client?.prenom }} {{ currentMissionForDelivery.client?.nom }}</span>
-            </div>
-            <div class="meta-item">
-                <fa-icon [icon]="faCalendarAlt"></fa-icon>
-                <span>Deadline: {{ currentMissionForDelivery.delaiLivraison | date: 'dd/MM/yyyy' }}</span>
-            </div>
-            <div class="meta-item">
-                <fa-icon [icon]="faMoneyBillWave"></fa-icon>
-                <strong>{{ currentMissionForDelivery.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
-            </div>
+        <div class="meta-item">
+          <fa-icon [icon]="faCalendarAlt"></fa-icon>
+          <span>Deadline: {{ currentMissionForDelivery.delaiLivraison | date: 'dd/MM/yyyy' }}</span>
         </div>
+        <div class="meta-item">
+          <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+          <strong>{{ currentMissionForDelivery.budget | currency:'TND':'symbol':'1.0-0' }}</strong>
+        </div>
+      </div>
     </div>
     
     <header class="modal-header">
       <h2>Soumettre votre travail</h2>
       <button class="close-btn" (click)="closeDeliveryForm()">
-          <fa-icon [icon]="faTimes"></fa-icon>
+        <fa-icon [icon]="faTimes"></fa-icon>
       </button>
     </header>
     
@@ -196,5 +308,250 @@
         </button>
       </footer>
     </form>
+  </div>
+</div>
+
+<!-- === MISSION DETAIL MODAL === -->
+<div class="modal-backdrop" *ngIf="isDetailModalOpen">
+  <div class="mission-detail-modal" *ngIf="isDetailModalOpen" (click)="$event.stopPropagation()">
+    
+    <!-- Loading State -->
+    <div *ngIf="isLoadingDetail" class="loading-indicator">
+      <div class="spinner"></div>
+      <h2>Chargement des détails...</h2>
+      <p>Récupération des informations détaillées de la mission.</p>
+    </div>
+
+    <!-- Mission Detail Content -->
+    <div *ngIf="!isLoadingDetail && currentMissionDetail" class="detail-content">
+      
+      <!-- Modal Header -->
+      <header class="detail-modal-header">
+        <div class="header-content">
+          <h2 class="mission-title">{{ currentMissionDetail.titre }}</h2>
+          <div class="mission-badges">
+            <span class="status-badge" [ngClass]="getStatusClass(currentMissionDetail.statut)">
+              {{ currentMissionDetail.statut | titlecase }}
+            </span>
+            <span class="category-badge">{{ currentMissionDetail.categorie | titlecase }}</span>
+            <span *ngIf="currentMissionDetail.urgent" class="urgent-badge">
+              <fa-icon [icon]="faExclamationCircle"></fa-icon>
+              Urgent
+            </span>
+          </div>
+        </div>
+        <button class="close-btn" (click)="closeMissionDetail()">
+          <fa-icon [icon]="faTimes"></fa-icon>
+        </button>
+      </header>
+
+      <!-- Mission Overview -->
+      <div class="mission-overview">
+        <div class="overview-grid">
+          <div class="overview-item">
+            <fa-icon [icon]="faMoneyBillWave" class="overview-icon"></fa-icon>
+            <div class="overview-content">
+              <span class="overview-label">Budget</span>
+              <span class="overview-value">{{ getBudgetDisplayForDetail(currentMissionDetail) }}</span>
+            </div>
+          </div>
+          
+          <div class="overview-item">
+            <fa-icon [icon]="faCalendarAlt" class="overview-icon"></fa-icon>
+            <div class="overview-content">
+              <span class="overview-label">Deadline</span>
+              <span class="overview-value">{{ currentMissionDetail.delaiLivraison | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+          
+          <div class="overview-item" *ngIf="currentMissionDetail.modaliteTravail">
+            <fa-icon [icon]="faMapPin" class="overview-icon"></fa-icon>
+            <div class="overview-content">
+              <span class="overview-label">Modalité</span>
+              <span class="overview-value">{{ getModaliteLabel(currentMissionDetail.modaliteTravail) }}</span>
+            </div>
+          </div>
+          
+          <div class="overview-item" *ngIf="currentMissionDetail.dureeEstimeeJours">
+            <fa-icon [icon]="faClock" class="overview-icon"></fa-icon>
+            <div class="overview-content">
+              <span class="overview-label">Durée estimée</span>
+              <span class="overview-value">{{ currentMissionDetail.dureeEstimeeJours }} jours</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matching Score -->
+      <div *ngIf="currentMissionDetail.scoreMatching" class="matching-section">
+        <div class="matching-header">
+          <h3>
+            <fa-icon [icon]="faStar" class="section-icon"></fa-icon>
+            Score de compatibilité
+          </h3>
+          <span class="matching-score" [ngClass]="getMatchingScoreClass(currentMissionDetail.scoreMatching)">
+            {{ currentMissionDetail.scoreMatching }}%
+          </span>
+        </div>
+        <p class="matching-label">{{ getMatchingScoreLabel(currentMissionDetail.scoreMatching) }}</p>
+        
+        <div *ngIf="currentMissionDetail.raisonsMatching?.length" class="matching-reasons">
+          <h4>Points de compatibilité :</h4>
+          <ul>
+            <li *ngFor="let reason of currentMissionDetail.raisonsMatching">{{ reason }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div class="description-section">
+        <h3>
+          <fa-icon [icon]="faFile" class="section-icon"></fa-icon>
+          Description du projet
+        </h3>
+        <div class="description-content">
+          <p>{{ currentMissionDetail.description }}</p>
+        </div>
+      </div>
+
+      <!-- Requirements -->
+      <div class="requirements-section">
+        <h3>
+          <fa-icon [icon]="faCode" class="section-icon"></fa-icon>
+          Exigences techniques
+        </h3>
+        
+        <div class="competences-grid">
+          <div *ngFor="let competence of currentMissionDetail.competencesRequises" 
+               class="competence-item" 
+               [ngClass]="getCompetenceLevelClass(getCompetenceLevel(competence))">
+            <span class="competence-name">{{ competence }}</span>
+            <span class="competence-level">{{ getCompetenceLevel(competence) }}</span>
+          </div>
+        </div>
+
+        <div *ngIf="currentMissionDetail.niveauExperienceMin" class="experience-requirement">
+          <fa-icon [icon]="faGraduationCap" class="requirement-icon"></fa-icon>
+          <span>Niveau d'expérience requis : <strong>{{ getNiveauExperienceLabel(currentMissionDetail.niveauExperienceMin) }}</strong></span>
+        </div>
+
+        <div *ngIf="currentMissionDetail.languesRequises" class="languages-requirement">
+          <fa-icon [icon]="faLanguage" class="requirement-icon"></fa-icon>
+          <span>Langues requises :</span>
+          <div class="languages-list">
+            <span *ngFor="let lang of currentMissionDetail.languesRequises | keyvalue" class="language-item">
+              {{ lang.key }} ({{ lang.value }})
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client Information -->
+      <div *ngIf="currentMissionDetail.client" class="client-section">
+        <h3>
+          <fa-icon [icon]="faUserCircle" class="section-icon"></fa-icon>
+          Informations client
+        </h3>
+        <div class="client-card">
+          <img [src]="getClientPhotoUrl(currentMissionDetail.client)" 
+               [alt]="currentMissionDetail.client.prenom + ' ' + currentMissionDetail.client.nom"
+               class="client-avatar">
+          <div class="client-info">
+            <h4>{{ currentMissionDetail.client.prenom }} {{ currentMissionDetail.client.nom }}</h4>
+            <p *ngIf="currentMissionDetail.client.nomEntreprise" class="client-company">
+              {{ currentMissionDetail.client.nomEntreprise }}
+            </p>
+            <p *ngIf="currentMissionDetail.client.ville" class="client-location">
+              <fa-icon [icon]="faMapPin"></fa-icon>
+              {{ currentMissionDetail.client.ville }}
+            </p>
+            <div *ngIf="currentMissionDetail.client.badges?.length" class="client-badges">
+              <span *ngFor="let badge of currentMissionDetail.client.badges" class="badge">{{ badge }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Project Stats -->
+      <div class="stats-section">
+        <h3>
+          <fa-icon [icon]="faUsers" class="section-icon"></fa-icon>
+          Statistiques du projet
+        </h3>
+        <div class="stats-grid">
+          <div *ngIf="currentMissionDetail.candidatsCount" class="stat-item">
+            <fa-icon [icon]="faUsers" class="stat-icon"></fa-icon>
+            <span class="stat-value">{{ currentMissionDetail.candidatsCount }}</span>
+            <span class="stat-label">Candidats</span>
+          </div>
+          <div *ngIf="currentMissionDetail.likesRecus" class="stat-item">
+            <fa-icon [icon]="faThumbsUp" class="stat-icon"></fa-icon>
+            <span class="stat-value">{{ currentMissionDetail.likesRecus }}</span>
+            <span class="stat-label">Likes reçus</span>
+          </div>
+          <div *ngIf="currentMissionDetail.swipesRecus" class="stat-item">
+            <fa-icon [icon]="faEye" class="stat-icon"></fa-icon>
+            <span class="stat-value">{{ currentMissionDetail.swipesRecus }}</span>
+            <span class="stat-label">Vues</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Media Section -->
+      <div *ngIf="currentMissionDetail.mediaUrls?.length || currentMissionDetail.videoBriefUrl" class="media-section">
+        <h3>
+          <fa-icon [icon]="faPaperclip" class="section-icon"></fa-icon>
+          Médias du projet
+        </h3>
+        
+        <div *ngIf="currentMissionDetail.videoBriefUrl" class="video-brief">
+          <h4>Brief vidéo</h4>
+          <div class="video-container">
+            <video controls class="video-player">
+              <source [src]="currentMissionDetail.videoBriefUrl" type="video/mp4">
+              Votre navigateur ne supporte pas la lecture vidéo.
+            </video>
+          </div>
+        </div>
+
+        <div *ngIf="currentMissionDetail.mediaUrls?.length" class="media-gallery">
+          <h4>Fichiers attachés</h4>
+          <div class="media-grid">
+            <div *ngFor="let mediaUrl of currentMissionDetail.mediaUrls" class="media-item">
+              <a [href]="mediaUrl" target="_blank" class="media-link">
+                <fa-icon [icon]="faDownload" class="media-icon"></fa-icon>
+                <span>Voir le fichier</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Selection Status -->
+      <div *ngIf="currentMissionDetail.selectionne" class="selection-status">
+        <div class="status-card selected">
+          <fa-icon [icon]="faCheckCircle" class="status-icon"></fa-icon>
+          <div class="status-content">
+            <h4>Vous êtes sélectionné pour cette mission !</h4>
+            <p>Vous pouvez commencer à travailler sur ce projet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="detail-actions">
+        <button class="btn btn--outline" (click)="closeMissionDetail()">
+          <fa-icon [icon]="faTimes"></fa-icon>
+          <span>Fermer</span>
+        </button>
+        
+        <button *ngIf="currentMissionDetail.canDeliver" 
+                class="btn btn--cta"
+                (click)="onOpenDeliveryForm()">
+          <fa-icon [icon]="faUpload"></fa-icon>
+          <span>Livrer le projet</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>

@@ -1,23 +1,269 @@
-<div class="sidebar" [class.collapsed]="isCollapsed$ | async">
+<nav class="sidebar" aria-label="Navigation latérale" [class.collapsed]="isCollapsed$ | async">
+  
+  <!-- Header avec logo -->
   <div class="sidebar-header">
     <img src="assets/Logo.png" alt="Logo Forsa" class="logo" (click)="toggleSidebar()">
   </div>
+
+  <!-- Bloc Profil Compact - Version Horizontale -->
+  <div class="profile-section" *ngIf="user$ | async as user">
+    <div class="profile-compact">
+      <!-- Avatar à gauche avec ring gradient fin -->
+      <div class="avatar-container">
+        <img 
+          *ngIf="user.photoProfilUrl" 
+          [src]="user.photoProfilUrl" 
+          [alt]="'Photo de profil de ' + getFullName(user)"
+          class="avatar"
+          (click)="editProfile()"
+        >
+        <div 
+          *ngIf="!user.photoProfilUrl" 
+          class="avatar-initials"
+          [attr.aria-label]="'Avatar avec initiales de ' + getFullName(user)"
+          role="img"
+          (click)="editProfile()"
+        >
+          {{ getUserInitials(user) }}
+        </div>
+        
+        <!-- Indicateur de statut en ligne -->
+        <div class="status-indicator online"></div>
+      </div>
+      
+      <!-- Informations utilisateur à droite (visible seulement si sidebar étendue) -->
+      <div class="profile-info" *ngIf="!(isCollapsed$ | async)">
+        <div class="user-name" [attr.aria-label]="'Nom complet: ' + getFullName(user)">
+          {{ getFullName(user) }}
+        </div>
+        <div class="user-role">
+          <span class="role-chip">
+            <fa-icon [icon]="faUserTie"></fa-icon>
+            {{ user.typeUtilisateur | lowercase }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div class="notifications-section">
+    <button 
+      class="notifications-toggle"
+      (click)="toggleNotifications()"
+      [attr.aria-expanded]="isNotificationsOpen"
+      aria-controls="notifications-drawer"
+      aria-label="Notifications"
+    >
+      <fa-icon [icon]="faBell" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Notifications</span>
+      
+      <!-- Badge notifications non lues -->
+      <div 
+        *ngIf="getUnreadCount() > 0" 
+        class="notification-badge"
+        [attr.aria-label]="getUnreadCount() + ' notification(s) non lue(s)'"
+      >
+        {{ getUnreadCount() > 99 ? '99+' : getUnreadCount() }}
+      </div>
+    </button>
+  </div>
   
-  <div class="sidebar-separator"></div>
+  <div class="side-group">
+    <a routerLink="/freelencer/swipe" class="side-item" [class.active]="isLinkActive('/freelencer/swipe')" [attr.aria-current]="isLinkActive('/freelencer/swipe') ? 'page' : null">
+      <fa-icon [icon]="faHeart" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Matcher des missions</span>
+    </a>
+    <a routerLink="/freelencer/projects" class="side-item" [class.active]="isLinkActive('/freelencer/projects')" [attr.aria-current]="isLinkActive('/freelencer/projects') ? 'page' : null">
+      <fa-icon [icon]="faFolder" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Mes missions</span>
+      <span class="count" *ngIf="!(isCollapsed$ | async)">2</span>
+    </a>
+    <a routerLink="/freelencer/paiements" class="side-item" [class.active]="isLinkActive('/freelencer/paiements')" [attr.aria-current]="isLinkActive('/freelencer/paiements') ? 'page' : null">
+      <fa-icon [icon]="faCreditCard" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Paiements</span>
+    </a>
+    <a routerLink="/freelencer/chat" class="side-item" [class.active]="isLinkActive('/freelencer/chat')" [attr.aria-current]="isLinkActive('/freelencer/chat') ? 'page' : null">
+      <fa-icon [icon]="faCommentDots" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Messagerie</span>
+    </a>
+  </div>
 
-  <nav class="navigation">
-    <ul>
-      <li><a routerLink="/freelencer/dashboard" [class.active]="isLinkActive('/freelencer/dashboard')"><fa-icon [icon]="faTachometerAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Tableau de bord</span></a></li>
-      <li><a routerLink="/freelencer/swipe" [class.active]="isLinkActive('/freelencer/swipe')"><fa-icon [icon]="faHeart"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Matcher des missions</span></a></li>
-      <li><a routerLink="/freelencer/projects" [class.active]="isLinkActive('/freelencer/projects')"><fa-icon [icon]="faFolder"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Mes missions</span></a></li>
-      <li><a routerLink="/freelencer/chat" [class.active]="isLinkActive('/freelencer/chat')"><fa-icon [icon]="faCommentDots"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Messagerie</span></a></li>
-    </ul>
-  </nav>
+  <div class="side-divider"></div>
 
-  <div class="sidebar-footer">
-    <ul>
-        <li><a routerLink="/freelencer/settings" [class.active]="isLinkActive('/freelencer/settings')"><fa-icon [icon]="faCog"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Paramètres</span></a></li>
-        <li><a (click)="logout()"><fa-icon [icon]="faSignOutAlt"></fa-icon><span *ngIf="!(isCollapsed$ | async)">Déconnexion</span></a></li>
-    </ul>
+  <div class="footer side-group">
+    <a routerLink="/freelencer/settings" class="side-item" [class.active]="isLinkActive('/freelencer/settings')" [attr.aria-current]="isLinkActive('/freelencer/settings') ? 'page' : null">
+      <fa-icon [icon]="faCog" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Paramètres</span>
+    </a>
+    <a (click)="logout()" class="side-item">
+      <fa-icon [icon]="faRightFromBracket" class="icon"></fa-icon>
+      <span class="label" *ngIf="!(isCollapsed$ | async)">Déconnexion</span>
+    </a>
+  </div>
+</nav>
+
+<!-- Panneau Notifications (Drawer) -->
+<div 
+  *ngIf="isNotificationsOpen" 
+  class="notifications-overlay"
+  (click)="closeNotifications()"
+  aria-label="Fermer les notifications"
+></div>
+
+<div 
+  *ngIf="isNotificationsOpen"
+  class="notifications-drawer"
+  id="notifications-drawer"
+  role="dialog"
+  aria-label="Panneau des notifications"
+  (click)="$event.stopPropagation()"
+>
+  
+  <!-- Header du drawer -->
+  <div class="drawer-header">
+    <h2 class="drawer-title">Notifications</h2>
+    <button 
+      class="close-button"
+      (click)="closeNotifications()"
+      aria-label="Fermer les notifications"
+    >
+      <fa-icon [icon]="faTimes"></fa-icon>
+    </button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="drawer-filters">
+    <div class="filter-pills">
+      <button 
+        class="filter-pill"
+        [class.active]="selectedFilter === 'ALL'"
+        (click)="changeFilter('ALL')"
+        aria-label="Filtrer toutes les notifications"
+      >
+        Tous
+      </button>
+      <button 
+        class="filter-pill"
+        [class.active]="selectedFilter === 'MESSAGE'"
+        (click)="changeFilter('MESSAGE')"
+        aria-label="Filtrer les messages"
+      >
+        Messages
+      </button>
+      <button 
+        class="filter-pill"
+        [class.active]="selectedFilter === 'MISSION'"
+        (click)="changeFilter('MISSION')"
+        aria-label="Filtrer les missions"
+      >
+        Missions
+      </button>
+      <button 
+        class="filter-pill"
+        [class.active]="selectedFilter === 'PAIEMENT'"
+        (click)="changeFilter('PAIEMENT')"
+        aria-label="Filtrer les paiements"
+      >
+        Paiements
+      </button>
+      <button 
+        class="filter-pill"
+        [class.active]="selectedFilter === 'SYSTEME'"
+        (click)="changeFilter('SYSTEME')"
+        aria-label="Filtrer les notifications système"
+      >
+        Système
+      </button>
+    </div>
+
+    <button 
+      class="mark-all-read-button"
+      (click)="markAllAsRead()"
+      [disabled]="getUnreadCount() === 0"
+      aria-label="Marquer toutes les notifications comme lues"
+    >
+      <fa-icon [icon]="faCheck"></fa-icon>
+      <span>Marquer tout comme lu</span>
+    </button>
+  </div>
+
+  <!-- Liste des notifications -->
+  <div class="notifications-list" role="list">
+    <div 
+      *ngFor="let notification of getFilteredNotifications(); trackBy: trackByNotification"
+      class="notification-item"
+      [class.unread]="!notification.read"
+      [ngClass]="getSeverityClass(notification.severity)"
+      role="listitem"
+      (click)="onNotificationClick(notification)"
+      [attr.aria-label]="notification.title + ' - ' + (notification.snippet || '')"
+    >
+      <!-- Indicateur non-lu -->
+      <div *ngIf="!notification.read" class="unread-indicator"></div>
+      
+      <!-- Icône -->
+      <div class="notification-icon">
+        <fa-icon [icon]="getNotificationIcon(notification.type)"></fa-icon>
+      </div>
+      
+      <!-- Contenu -->
+      <div class="notification-content">
+        <div class="notification-title">{{ notification.title }}</div>
+        <div *ngIf="notification.snippet" class="notification-snippet">
+          {{ notification.snippet }}
+        </div>
+        <div class="notification-time">{{ getTimeAgo(notification.createdAt) }}</div>
+      </div>
+      
+      <!-- Actions -->
+      <div class="notification-actions">
+        <button 
+          class="toggle-read-button"
+          (click)="toggleNotificationRead(notification); $event.stopPropagation()"
+          [attr.aria-label]="notification.read ? 'Marquer comme non lue' : 'Marquer comme lue'"
+        >
+          <fa-icon [icon]="notification.read ? faTimes : faCheck"></fa-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- État vide -->
+  <div *ngIf="getFilteredNotifications().length === 0" class="empty-notifications">
+    <fa-icon [icon]="faBell" class="empty-icon"></fa-icon>
+    <p>Aucune notification</p>
+  </div>
+
+  <!-- Bouton de démo toast -->
+  <div class="demo-section">
+    <button 
+      class="demo-toast-button"
+      (click)="showDemoToast()"
+      aria-label="Afficher un toast de démonstration"
+    >
+      Afficher un toast de démo
+    </button>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toasts-container" role="status" aria-live="polite">
+  <div 
+    *ngFor="let toast of toasts; trackBy: trackByToast"
+    class="toast"
+    [ngClass]="'toast-' + toast.type"
+    role="alert"
+  >
+    <div class="toast-content">
+      <span class="toast-message">{{ toast.message }}</span>
+    </div>
+    <button 
+      class="toast-close"
+      (click)="removeToast(toast.id)"
+      aria-label="Fermer la notification"
+    >
+      <fa-icon [icon]="faTimes"></fa-icon>
+    </button>
   </div>
 </div>

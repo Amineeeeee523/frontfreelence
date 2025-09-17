@@ -12,6 +12,7 @@ import { MissionRecommendation } from '../models/mission-recommendation.model';
 import { Swipe, Decision as SwipeDecision } from '../models/swipe.model';
 import { ClientSwipe } from '../models/client-swipe.model';
 import { MissionDetailView } from '../models/mission-detail-view.model';
+import { FreelancerMissionDetailDTO } from '../models/freelancer-mission-detail.model';
 
 @Injectable({
   providedIn: 'root'
@@ -209,6 +210,19 @@ export class MissionsService {
   getMissionDetailView(id: number, userId: number): Observable<MissionDetailView> {
     return this.http.get<MissionDetailView>(`${this.missionsApi}/${id}/detail-view`, {
       headers: { 'X-User-Id': String(userId) },
+      withCredentials: true
+    });
+  }
+
+  /** Détails d'une mission pour freelance (vue détaillée) */
+  getFreelancerMissionDetailView(id: number, userId?: number): Observable<FreelancerMissionDetailDTO> {
+    const headers: { [key: string]: string } = {};
+    if (userId) {
+      headers['X-User-Id'] = String(userId);
+    }
+    
+    return this.http.get<FreelancerMissionDetailDTO>(`${this.missionsApi}/${id}/freelancer-view`, {
+      headers,
       withCredentials: true
     });
   }

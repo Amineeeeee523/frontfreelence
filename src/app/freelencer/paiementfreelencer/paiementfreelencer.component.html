@@ -1,1 +1,200 @@
-<p>paiementfreelencer works!</p>
+<!--
+  INTERFACE DE PAIEMENT FREELANCER - VERSION PREMIUM 5.0
+  Design ultra moderne avec hiérarchie visuelle optimisée
+  Charte cyan → mauve cohérente
+  Perspective freelancer : focus sur les gains nets
+-->
+<div class="paiement-container">
+
+  <!-- État de chargement Premium -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-content">
+      <div class="spinner-container">
+        <div class="spinner"></div>
+        <div class="spinner-ring"></div>
+      </div>
+      <h3>Chargement de vos missions...</h3>
+      <p>Préparation de votre tableau de bord de gains</p>
+      <div class="loading-dots">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards Compactes et Dynamiques -->
+  <div *ngIf="!isLoading && missions.length > 0" class="kpi-dashboard">
+    <div class="kpi-grid">
+      <div class="kpi-card earnings">
+        <div class="kpi-icon">
+          <fa-icon [icon]="faDollarSign"></fa-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" [@countUp]="getTotalNetEarnings()">
+            {{ animatedNetEarnings | number:'1.0-0' }} TND
+          </div>
+          <div class="kpi-label">Gains nets</div>
+          <div class="kpi-trend" [ngClass]="getEarningsTrendClass()">
+            <fa-icon [icon]="getEarningsTrendIcon()"></fa-icon>
+            <span>{{ getEarningsTrendText() }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="kpi-card potential">
+        <div class="kpi-icon">
+          <fa-icon [icon]="faChartLine"></fa-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" [@countUp]="getTotalPotentialEarnings()">
+            {{ animatedPotentialEarnings | number:'1.0-0' }} TND
+          </div>
+          <div class="kpi-label">Potentiel total</div>
+          <div class="kpi-trend neutral">
+            <fa-icon [icon]="faClock"></fa-icon>
+            <span>{{ getActiveMissionsCount() }} missions actives</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="kpi-card completed">
+        <div class="kpi-icon">
+          <fa-icon [icon]="faCheckCircle"></fa-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" [@countUp]="getCompletedTranches()">
+            {{ animatedCompletedTranches }}
+          </div>
+          <div class="kpi-label">Tranches reçues</div>
+          <div class="kpi-trend" [ngClass]="getTranchesTrendClass()">
+            <fa-icon [icon]="getTranchesTrendIcon()"></fa-icon>
+            <span>{{ getTranchesTrendText() }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="kpi-card progress">
+        <div class="kpi-icon">
+          <fa-icon [icon]="faPercent"></fa-icon>
+        </div>
+        <div class="kpi-content">
+          <div class="kpi-value" [@countUp]="getAverageProgress()">
+            {{ animatedAverageProgress | number:'1.0-0' }}%
+          </div>
+          <div class="kpi-label">Progression</div>
+          <div class="kpi-trend" [ngClass]="getProgressTrendClass()">
+            <fa-icon [icon]="getProgressTrendIcon()"></fa-icon>
+            <span>{{ getProgressTrendText() }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu principal Premium -->
+  <main *ngIf="!isLoading" class="missions-grid">
+
+    <!-- Carte pour chaque mission avec hiérarchie optimisée -->
+    <div *ngFor="let mission of missions; let i = index; trackBy: trackByMissionId" 
+         class="mission-card" 
+         [routerLink]="['/freelencer/paiements/mission', mission.id]"
+         [style.animation-delay]="(i * 0.1) + 's'">
+      
+      <!-- Header de la carte - Hiérarchie optimisée -->
+      <div class="card-header">
+        <div class="mission-info">
+          <h2 class="mission-title">{{ mission.titre }}</h2>
+          <div class="mission-meta">
+            <span class="mission-id">#{{ mission.id }}</span>
+            <span class="mission-date">{{ mission.datePublication | date:'dd/MM/yyyy' }}</span>
+          </div>
+        </div>
+        <div class="status-badge" [ngClass]="getBadgeClass(mission.statut)">
+          <fa-icon [icon]="getBadgeIcon(mission.statut)"></fa-icon>
+          {{ formatStatut(mission.statut) }}
+        </div>
+      </div>
+
+      <!-- Informations client -->
+      <div class="client-section" *ngIf="mission.client">
+        <div class="client-info">
+          <div class="client-avatar">
+            <img [src]="getClientPhotoUrl(mission.client)" 
+                 [alt]="getClientFullName(mission.client)"
+                 class="avatar-img">
+            <div class="avatar-fallback" *ngIf="!mission.client.photoProfilUrl">
+              <fa-icon [icon]="faUser"></fa-icon>
+            </div>
+          </div>
+          <div class="client-details">
+            <span class="client-name">{{ getClientFullName(mission.client) }}</span>
+            <span class="client-label">Client</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bloc gains - Élément focus principal pour le freelance -->
+      <div class="earnings-section">
+        <div class="earnings-display">
+          <span class="earnings-label">Gains nets</span>
+          <span class="earnings-value">
+            <ng-container *ngIf="mission.summary?.totalNetFreelance !== undefined && mission.summary?.totalNetFreelance !== null; else loadingEarnings">
+              {{ mission.netEarnings | number:'1.2-2' }} TND
+            </ng-container>
+            <ng-template #loadingEarnings>
+              <span class="loading-earnings">Chargement...</span>
+            </ng-template>
+          </span>
+          <div class="earnings-potential" *ngIf="mission.totalNetEarnings > mission.netEarnings">
+            <span class="potential-label">Potentiel total</span>
+            <span class="potential-value">{{ mission.totalNetEarnings | number:'1.2-2' }} TND</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Avancement - Représentation unique optimisée -->
+      <div class="progress-section">
+        <div class="progress-info">
+          <span class="progress-text">{{ mission.paidTranches }} / {{ mission.totalTranches }} tranches payées</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="mission.progress">
+            <span class="progress-percentage">{{ mission.progress | number:'1.0-0' }}%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA principal - Bouton plein contrasté -->
+      <div class="card-actions">
+        <button class="action-button" [routerLink]="['/freelencer/paiements/mission', mission.id]">
+          <span>Voir les détails</span>
+          <fa-icon [icon]="faEye"></fa-icon>
+        </button>
+      </div>
+
+      <!-- Effet de brillance -->
+      <div class="card-shine"></div>
+    </div>
+
+    <!-- État vide Premium -->
+    <div *ngIf="missions.length === 0" class="empty-state">
+      <div class="empty-content">
+        <div class="empty-icon">
+          <fa-icon [icon]="faCreditCard" size="4x"></fa-icon>
+        </div>
+        <h3>Aucune mission à afficher</h3>
+        <p>Commencez par accepter des missions pour voir vos gains ici.</p>
+        <div class="empty-actions">
+          <button class="primary-button" [routerLink]="['/freelencer/swipe']">
+            <fa-icon [icon]="faPlus"></fa-icon>
+            Découvrir des missions
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+
+</div>

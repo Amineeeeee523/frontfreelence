@@ -1,8 +1,7 @@
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterOutlet, NavigationEnd } from '@angular/router';
 import { SidebarfreelencerComponent } from '../sidebarfreelencer/sidebarfreelencer.component';
-import { NavbarFreelencerComponent } from '../navbar-freelencer/navbar-freelencer.component'; // Importez le composant Navbar
 import { SidebarStateService } from '../../core/sidebar-state.service';
 import { Observable, Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
@@ -10,11 +9,11 @@ import { filter } from 'rxjs/operators';
 @Component({
   selector: 'app-freelencer-layout',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, SidebarfreelencerComponent, NavbarFreelencerComponent], // Ajoutez NavbarFreelencerComponent aux imports
+  imports: [CommonModule, RouterOutlet, SidebarfreelencerComponent],
   templateUrl: './freelencer-layout.component.html',
   styleUrls: ['./freelencer-layout.component.scss']
 })
-export class FreelencerLayoutComponent implements OnDestroy {
+export class FreelencerLayoutComponent implements OnInit, OnDestroy {
   isSidebarCollapsed$: Observable<boolean>;
   private routerSubscription: Subscription;
 
@@ -33,6 +32,13 @@ export class FreelencerLayoutComponent implements OnDestroy {
         this.sidebarStateService.setCollapsed(false);
       }
     });
+  }
+
+  ngOnInit(): void {
+    // Rediriger vers swipe si on est sur la route racine freelancer
+    if (this.router.url === '/freelencer') {
+      this.router.navigate(['/freelencer/swipe']);
+    }
   }
 
   ngOnDestroy(): void {

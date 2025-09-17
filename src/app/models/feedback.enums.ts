@@ -1,0 +1,34 @@
+// src/app/models/feedback.enums.ts
+export enum Audience {
+  FREELANCE = 'FREELANCE',
+  CLIENT = 'CLIENT'
+}
+
+export enum FeedbackRole {
+  CLIENT_TO_FREELANCER = 'CLIENT_TO_FREELANCER',
+  FREELANCER_TO_CLIENT = 'FREELANCER_TO_CLIENT'
+}
+
+export enum FeedbackStatus {
+  DRAFT = 'DRAFT',
+  SUBMITTED = 'SUBMITTED',
+  PUBLISHED = 'PUBLISHED',
+  UNDER_REVIEW = 'UNDER_REVIEW',
+  REMOVED = 'REMOVED'
+}
+
+export enum CriterionType {
+  // Client → Freelance
+  QUALITY = 'QUALITY',
+  TIMELINESS = 'TIMELINESS',
+  COMMUNICATION = 'COMMUNICATION',
+  TECHNICAL = 'TECHNICAL',
+  GLOBAL = 'GLOBAL',
+
+  // Freelance → Client
+  BRIEF_CLARITY = 'BRIEF_CLARITY',
+  PAYMENT_RELIABILITY = 'PAYMENT_RELIABILITY',
+  ORGANIZATION = 'ORGANIZATION'
+}
+
+

@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, ActivatedRoute } from '@angular/router';
 import {
   faCreditCard,
   faArrowRight,
@@ -72,11 +72,37 @@ export class PaiementclientComponent implements OnInit {
   constructor(
     private missionService: MissionsService,
     private authService: AuthService,
-    private paiementService: TranchePaiementService
+    private paiementService: TranchePaiementService,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit(): void {
     this.loadMissionsWithSummaries();
+    
+    // Vérifier les paramètres de requête pour sélectionner une mission/tranche spécifique
+    this.route.queryParams.subscribe(params => {
+      if (params['missionId']) {
+        const missionId = parseInt(params['missionId']);
+        console.log('[PaiementClient] Mission spécifique demandée:', {
+          missionId: missionId,
+          missionTitle: params['missionTitle'],
+          trancheId: params['trancheId'],
+          category: params['category'],
+          budget: params['budget']
+        });
+        
+        // Attendre que les missions soient chargées, puis sélectionner la mission spécifique
+        setTimeout(() => {
+          const specificMission = this.missions.find(m => m.id === missionId);
+          if (specificMission) {
+            console.log('[PaiementClient] Mission spécifique trouvée:', specificMission);
+            this.selectMissionAndTranche(specificMission, params['trancheId']);
+          } else {
+            console.warn('[PaiementClient] Mission spécifiée non trouvée:', missionId);
+          }
+        }, 1000); // Délai pour laisser le temps aux missions de se charger
+      }
+    });
   }
 
   /**
@@ -304,5 +330,28 @@ export class PaiementclientComponent implements OnInit {
     return mission.id;
   }
 
+  /**
+   * Sélectionne automatiquement une mission et une tranche spécifique
+   * et déclenche le paiement si une tranche est spécifiée
+   */
+  selectMissionAndTranche(mission: MissionView, trancheId?: string): void {
+    console.log('[PaiementClient] Sélection automatique:', {
+      missionId: mission.id,
+      missionTitle: mission.titre,
+      trancheId: trancheId
+    });
+
+    if (trancheId) {
+      const trancheIdNumber = parseInt(trancheId);
+      console.log('[PaiementClient] Déclenchement automatique du paiement pour tranche:', trancheIdNumber);
+      
+      // Déclencher automatiquement le paiement de la tranche
+      this.payerTrancheDirect(trancheIdNumber);
+    } else {
+      console.log('[PaiementClient] Aucune tranche spécifiée, navigation vers la mission uniquement');
+      // TODO: Implémenter la sélection visuelle de la mission dans l'interface
+      // Par exemple, scroller vers la mission ou l'ouvrir automatiquement
+    }
+  }
 
 }

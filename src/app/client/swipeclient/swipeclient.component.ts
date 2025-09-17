@@ -18,7 +18,7 @@ import { MissionCard } from '../../models/mission-card.model';
 import { MissionsService } from '../../services/missions.service';
 import { MatchNotificationService } from '../../services/match-notification.service';
 import { MatchNotification } from '../../models/match-notification.model';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { SwipeClientFreelanceComponent } from './swipe-client-freelance.component';
 import { MissionSelectorService } from '../../core/mission-selector.service';
 
@@ -85,6 +85,7 @@ export class SwipeclientComponent implements OnInit {
     private authService: AuthService,
     private matchService: MatchNotificationService,
     private router: Router,
+    private route: ActivatedRoute,
     private missionSelector: MissionSelectorService
   ) {}
 
@@ -111,10 +112,35 @@ export class SwipeclientComponent implements OnInit {
       })
     ).subscribe((missions: MissionCard[]) => {
       this.clientMissions = missions;
-      // Sélectionner automatiquement la première mission si disponible
-      if (!this.selectedMission && missions.length > 0) {
-        this.selectMission(missions[0]);
-      }
+      
+      // Vérifier les paramètres de requête pour sélectionner une mission spécifique
+      this.route.queryParams.subscribe(params => {
+        if (params['missionId']) {
+          const missionId = parseInt(params['missionId']);
+          const specificMission = missions.find(m => m.id === missionId);
+          
+          if (specificMission) {
+            console.log('[SwipeClient] Mission spécifique sélectionnée:', {
+              id: specificMission.id,
+              titre: specificMission.titre,
+              categorie: specificMission.categorie,
+              budget: specificMission.budget
+            });
+            this.selectMission(specificMission);
+          } else {
+            console.warn('[SwipeClient] Mission spécifiée non trouvée:', missionId);
+            // Fallback sur la première mission
+            if (missions.length > 0) {
+              this.selectMission(missions[0]);
+            }
+          }
+        } else {
+          // Sélectionner automatiquement la première mission si disponible
+          if (!this.selectedMission && missions.length > 0) {
+            this.selectMission(missions[0]);
+          }
+        }
+      });
     });
   }
 

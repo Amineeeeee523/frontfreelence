@@ -17,40 +17,56 @@
     
     <!-- Header Section -->
     <header class="mission-header">
-      <div class="header-main">
-        <div class="mission-title-section">
-          <h1 class="mission-title">{{ mission()?.titre }}</h1>
-          <div class="mission-meta">
-            <span class="mission-id">#{{ mission()?.id }}</span>
-            <span class="mission-category">{{ getCategorieLabel(mission()?.categorie) }}</span>
-          </div>
-        </div>
-        
-        <div class="status-section">
-          <div class="status-badge" [ngClass]="statusClass()">
-            <fa-icon [icon]="statusIcon()"></fa-icon>
-            <span>{{ getStatusLabel(mission()?.statut) }}</span>
-          </div>
-          <div *ngIf="mission()?.urgent" class="urgent-badge">
-            <fa-icon [icon]="faExclamationTriangle"></fa-icon>
-            <span>Urgent</span>
+      <!-- Zone Gauche : Titre + Chips -->
+      <div class="header-left">
+        <div class="title-section">
+          <h1 class="mission-title" [title]="mission()?.titre">{{ mission()?.titre }}</h1>
+          <div class="chips-container">
+            <span class="chip chip--id" title="ID de la mission">
+              <fa-icon [icon]="faTag"></fa-icon>
+              <span>#{{ mission()?.id }}</span>
+            </span>
+            <span class="chip chip--category" title="Catégorie de la mission">
+              <fa-icon [icon]="faBriefcase"></fa-icon>
+              <span>{{ getCategorieLabel(mission()?.categorie) }}</span>
+            </span>
           </div>
         </div>
       </div>
 
-      <div class="header-details">
-        <div class="detail-chip">
-          <fa-icon [icon]="faMoneyBillWave"></fa-icon>
-          <span>{{ formatCurrency(mission()?.budget, mission()?.devise) }}</span>
+      <!-- Zone Centre : Méta courte -->
+      <div class="header-center">
+        <div class="meta-info">
+          <div class="meta-item" *ngIf="mission()?.budget">
+            <fa-icon [icon]="faMoneyBillWave"></fa-icon>
+            <span>{{ formatCurrency(mission()?.budget, mission()?.devise) }}</span>
+          </div>
+          <div class="meta-item" *ngIf="mission()?.delaiLivraison">
+            <fa-icon [icon]="faCalendarAlt"></fa-icon>
+            <span>{{ formatDate(mission()?.delaiLivraison) }}</span>
+          </div>
         </div>
-        <div class="detail-chip">
-          <fa-icon [icon]="faCalendarAlt"></fa-icon>
-          <span>Deadline: {{ formatDate(mission()?.delaiLivraison) }}</span>
+      </div>
+
+      <!-- Zone Droite : États + Bouton Fermer -->
+      <div class="header-right">
+        <div class="status-group">
+          <div class="status-badge" [ngClass]="statusClass()" [title]="getStatusLabel(mission()?.statut)">
+            <fa-icon [icon]="statusIcon()"></fa-icon>
+            <span>{{ getStatusLabel(mission()?.statut) }}</span>
+          </div>
+          <div *ngIf="mission()?.urgent" class="urgent-badge" title="Mission urgente">
+            <fa-icon [icon]="faExclamationTriangle"></fa-icon>
+            <span>Urgent</span>
+          </div>
         </div>
-        <div *ngIf="mission()?.localisation" class="detail-chip">
-          <fa-icon [icon]="faMapPin"></fa-icon>
-          <span>{{ mission()?.localisation }}</span>
-        </div>
+        
+        <button class="close-modal-btn" 
+                (click)="closeModal()" 
+                aria-label="Fermer la modal"
+                title="Fermer">
+          <fa-icon [icon]="faTimes"></fa-icon>
+        </button>
       </div>
     </header>
 
@@ -147,28 +163,19 @@
           </div>
         </div>
 
-        <!-- Participants -->
-        <div class="participants-section">
-          <div class="participant-card">
-            <div class="participant-avatar">
-              <fa-icon [icon]="faUser"></fa-icon>
-            </div>
-            <div class="participant-info">
-              <h4>Client</h4>
-              <p>{{ mission()?.clientNomComplet || '-' }}</p>
-            </div>
-          </div>
-
-          <div *ngIf="mission()?.freelanceNomComplet" class="participant-card">
-            <div class="participant-avatar">
-              <fa-icon [icon]="faUser"></fa-icon>
-            </div>
-            <div class="participant-info">
-              <h4>Freelance</h4>
-              <p>{{ mission()?.freelanceNomComplet }}</p>
-            </div>
-          </div>
-        </div>
+                 <!-- Freelance Section (seulement si assigné) -->
+         <div *ngIf="mission()?.freelanceNomComplet" class="freelance-section">
+           <h4>Freelance assigné</h4>
+           <div class="freelance-card">
+             <div class="freelance-avatar">
+               <fa-icon [icon]="faUser"></fa-icon>
+             </div>
+             <div class="freelance-info">
+               <h5>{{ mission()?.freelanceNomComplet }}</h5>
+               <p class="freelance-status">Freelance assigné</p>
+             </div>
+           </div>
+         </div>
       </section>
 
       <!-- Payment Section -->
@@ -209,8 +216,9 @@
                 <div class="tranche-badges">
                   <span *ngIf="tranche.required" class="badge required">Requis</span>
                   <span *ngIf="tranche.finale" class="badge final">Finale</span>
-                  <span class="badge status" [ngClass]="trancheStatusClass(tranche.statut)">
-                    {{ tranche.statut || '-' }}
+                  <span class="badge status" [ngClass]="getTrancheStatusClass(tranche)">
+                    <fa-icon [icon]="getTrancheStatusIcon(tranche)" class="badge-icon"></fa-icon>
+                    {{ getTrancheStatusLabel(tranche) }}
                   </span>
                 </div>
               </div>
@@ -221,94 +229,55 @@
             </div>
             
             <div class="tranche-actions">
+              <!-- Bouton de paiement - seulement si la tranche est payable -->
               <button 
-                *ngIf="tranche.paymentUrl" 
+                *ngIf="isTranchePayable(tranche)" 
                 class="btn-pay"
                 (click)="onPayerTranche(tranche)">
                 <fa-icon [icon]="faCreditCard"></fa-icon>
                 Payer
               </button>
+              
+              <!-- Bouton pour voir les livrables de cette tranche -->
+              <button 
+                *ngIf="hasLivrablesForTranche(tranche)"
+                class="btn-livrables"
+                (click)="openLivrablesForTranche(tranche)"
+                [title]="'Voir les livrables (' + getLivrablesCountForTranche(tranche) + ')'">
+                <fa-icon [icon]="faFileAlt"></fa-icon>
+                <span class="livrables-count">{{ getLivrablesCountForTranche(tranche) }}</span>
+              </button>
+              
+              
+              <!-- Statut payé - affichage de confirmation -->
+              <div *ngIf="isTranchePaid(tranche)" class="tranche-status-paid">
+                <fa-icon [icon]="getTrancheStatusIcon(tranche)" class="status-icon"></fa-icon>
+                <span class="status-text">{{ getTrancheStatusLabel(tranche) }}</span>
+              </div>
+              
+              <!-- Statut rejeté - affichage d'erreur -->
+              <div *ngIf="isTrancheRejected(tranche)" class="tranche-status-rejected">
+                <fa-icon [icon]="getTrancheStatusIcon(tranche)" class="status-icon"></fa-icon>
+                <span class="status-text">{{ getTrancheStatusLabel(tranche) }}</span>
+              </div>
+              
+              <!-- Statut en erreur - affichage d'erreur -->
+              <div *ngIf="isTrancheInError(tranche)" class="tranche-status-error">
+                <fa-icon [icon]="getTrancheStatusIcon(tranche)" class="status-icon"></fa-icon>
+                <span class="status-text">{{ getTrancheStatusLabel(tranche) }}</span>
+              </div>
+              
+              <!-- Statut en attente - affichage d'attente -->
+              <div *ngIf="isTrancheNotPaid(tranche) && !isTranchePayable(tranche)" class="tranche-status-pending">
+                <fa-icon [icon]="getTrancheStatusIcon(tranche)" class="status-icon"></fa-icon>
+                <span class="status-text">{{ getTrancheStatusLabel(tranche) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Deliverables Section -->
-      <section class="deliverables-section">
-        <h2 class="section-title">
-          <fa-icon [icon]="faFileAlt"></fa-icon>
-          Livrables
-        </h2>
-
-        <div class="deliverables-list">
-          <div class="deliverable-item" *ngFor="let livrable of mission()?.livrables || []">
-            <div class="deliverable-header">
-              <h4>{{ livrable.titre }}</h4>
-              <div class="deliverable-status" [ngClass]="livrableStatusClass(livrable.status)">
-                {{ livrable.status || '-' }}
-              </div>
-            </div>
-
-            <div *ngIf="livrable.description" class="deliverable-description">
-              {{ livrable.description }}
-            </div>
-
-            <div class="deliverable-meta">
-              <span class="deliverable-date">
-                <fa-icon [icon]="faCalendarAlt"></fa-icon>
-                {{ formatDate(livrable.dateEnvoi) }}
-              </span>
-            </div>
-
-            <!-- Files -->
-            <div *ngIf="livrable.cheminsFichiers?.length" class="deliverable-files">
-              <h5>Fichiers</h5>
-              <div class="files-list">
-                <button 
-                  *ngFor="let file of livrable.cheminsFichiers; let i = index"
-                  class="file-btn"
-                  (click)="openFile(file)">
-                  <fa-icon [icon]="faDownload"></fa-icon>
-                  Fichier {{ i + 1 }}
-                </button>
-              </div>
-            </div>
-
-            <!-- External Links -->
-            <div *ngIf="livrable.liensExternes?.length" class="deliverable-links">
-              <h5>Liens externes</h5>
-              <div class="links-list">
-                <a 
-                  *ngFor="let link of livrable.liensExternes"
-                  [href]="link"
-                  target="_blank"
-                  class="link-btn">
-                  <fa-icon [icon]="faLink"></fa-icon>
-                  {{ link }}
-                </a>
-              </div>
-            </div>
-
-            <!-- Actions -->
-            <div *ngIf="livrable.status === 'EN_ATTENTE'" class="deliverable-actions">
-              <button 
-                *ngIf="livrable.canValidate"
-                class="btn-validate"
-                (click)="onValiderLivrable(livrable)">
-                <fa-icon [icon]="faCheckCircle"></fa-icon>
-                Valider
-              </button>
-              <button 
-                *ngIf="livrable.canReject"
-                class="btn-reject"
-                (click)="onRejeterLivrable(livrable)">
-                <fa-icon [icon]="faTimes"></fa-icon>
-                Rejeter
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      <!-- Note: La section des livrables a été intégrée dans les tranches de paiement -->
 
       <!-- Files Section -->
       <section *ngIf="(mission()?.mediaUrls?.length || 0) > 0 || mission()?.videoBriefUrl" class="files-section">
@@ -345,5 +314,106 @@
         </div>
       </section>
     </main>
+  </div>
+</div>
+
+<!-- Modal pour afficher les livrables d'une tranche spécifique -->
+<div class="modal-backdrop" *ngIf="isLivrablesModalOpen()" (click)="closeLivrablesModal()">
+  <div class="modal-panel livrables-modal" (click)="$event.stopPropagation()">
+    <header class="modal-header">
+      <h2>Livrables - {{ selectedTrancheForLivrables()?.titre }}</h2>
+      <button class="close-btn" (click)="closeLivrablesModal()">
+        <fa-icon [icon]="faTimes"></fa-icon>
+      </button>
+    </header>
+    
+    <div class="modal-content">
+      <div class="tranche-info" *ngIf="selectedTrancheForLivrables() as tranche">
+        <div class="tranche-summary">
+          <span class="tranche-order">Tranche #{{ tranche.ordre }}</span>
+          <span class="tranche-amount">{{ formatCurrency(tranche.montantBrut, mission()?.devise) }}</span>
+          <span class="tranche-status" [ngClass]="getTrancheStatusClass(tranche)">
+            <fa-icon [icon]="getTrancheStatusIcon(tranche)"></fa-icon>
+            {{ getTrancheStatusLabel(tranche) }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Liste des livrables pour cette tranche -->
+      <div class="livrables-list" *ngIf="selectedTrancheForLivrables() as tranche">
+        <div *ngFor="let livrable of getLivrablesForTranche(tranche)" class="livrable-item">
+          <div class="livrable-header">
+            <h4>{{ livrable.titre }}</h4>
+            <div class="livrable-status" [ngClass]="livrableStatusClass(livrable.status)">
+              {{ livrable.status || '-' }}
+            </div>
+          </div>
+
+          <div *ngIf="livrable.description" class="livrable-description">
+            {{ livrable.description }}
+          </div>
+
+          <div class="livrable-meta">
+            <span class="livrable-date">
+              <fa-icon [icon]="faCalendarAlt"></fa-icon>
+              {{ formatDate(livrable.dateEnvoi) }}
+            </span>
+          </div>
+
+          <!-- Files -->
+          <div *ngIf="livrable.cheminsFichiers?.length" class="livrable-files">
+            <h5>Fichiers</h5>
+            <div class="files-list">
+              <button 
+                *ngFor="let file of livrable.cheminsFichiers; let i = index"
+                class="file-btn"
+                (click)="openFile(file)">
+                <fa-icon [icon]="faDownload"></fa-icon>
+                Fichier {{ i + 1 }}
+              </button>
+            </div>
+          </div>
+
+          <!-- External Links -->
+          <div *ngIf="livrable.liensExternes?.length" class="livrable-links">
+            <h5>Liens externes</h5>
+            <div class="links-list">
+              <a 
+                *ngFor="let link of livrable.liensExternes"
+                [href]="link"
+                target="_blank"
+                class="link-btn">
+                <fa-icon [icon]="faLink"></fa-icon>
+                {{ link }}
+              </a>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div *ngIf="livrable.status === 'EN_ATTENTE'" class="livrable-actions">
+            <button 
+              *ngIf="livrable.canValidate"
+              class="btn-validate"
+              (click)="onValiderLivrable(livrable)">
+              <fa-icon [icon]="faCheckCircle"></fa-icon>
+              Valider
+            </button>
+            <button 
+              *ngIf="livrable.canReject"
+              class="btn-reject"
+              (click)="onRejeterLivrable(livrable)">
+              <fa-icon [icon]="faTimes"></fa-icon>
+              Rejeter
+            </button>
+          </div>
+        </div>
+
+        <!-- Message si aucun livrable -->
+        <div *ngIf="getLivrablesForTranche(tranche).length === 0" class="no-livrables">
+          <fa-icon [icon]="faFileAlt" class="no-livrables-icon"></fa-icon>
+          <p>Aucun livrable associé à cette tranche</p>
+        </div>
+      </div>
+    </div>
   </div>
 </div>

@@ -10,6 +10,8 @@ export interface TrancheMini {
   required: boolean; 
   finale: boolean;
   paymentUrl?: string;
+  livrableAssocieId?: number; // ID du livrable associé à cette tranche
+  livrables?: LivrableLite[]; // Livrables associés à cette tranche
 }
 
 export interface PaymentMini {

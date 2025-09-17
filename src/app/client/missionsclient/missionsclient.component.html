@@ -112,6 +112,19 @@
               }"></fa-icon>
               <span>{{ mission.statut | statutLabel }}</span>
             </span>
+            
+            <!-- + AJOUTER - Badges Feedback -->
+            <span class="chip chip--feedback"
+                  *ngIf="feedbackEligibility()[mission.id]?.eligible">
+              <fa-icon [icon]="faStar" class="icon"></fa-icon>
+              <span>Avis à donner</span>
+            </span>
+
+            <span class="chip chip--feedback waiting"
+                  *ngIf="!feedbackEligibility()[mission.id]?.eligible && (mission.statut === 'PRET_A_CLOTURER' || mission.statut === 'TERMINEE')">
+              <fa-icon [icon]="faHourglassHalf" class="icon"></fa-icon>
+              <span>En attente publication</span>
+            </span>
           </div>
         </div>
         
@@ -151,7 +164,7 @@
         <div class="freelance-info">
           <div class="empty-assignment">
             <span class="empty-text">Aucun freelance assigné</span>
-            <button class="explore-btn">
+            <button class="explore-btn" (click)="navigateToExploreFreelancers(mission)">
               <fa-icon [icon]="faSearch"></fa-icon>
               <span>Explorer</span>
             </button>
@@ -203,7 +216,7 @@
         
         <button *ngIf="getNextAction(mission) === 'payer'" 
                 class="btn btn--cta"
-                (click)="onPayerTranche(mission.trancheIdDue || 0)">
+                (click)="onPayerTranche(mission.trancheIdDue || 0, mission)">
           <fa-icon [icon]="faCreditCard"></fa-icon>
           <span>Payer la tranche</span>
         </button>
@@ -220,6 +233,33 @@
                 (click)="onBoosterMission(mission.id)">
           <fa-icon [icon]="faStar"></fa-icon>
           <span>Booster mission</span>
+        </button>
+        
+        <!-- + AJOUTER - Boutons Feedback -->
+        <ng-container *ngIf="getFeedbackActions(mission).length > 0">
+          <!-- Bouton Créer -->
+          <button *ngIf="getFeedbackActions(mission).includes('create')"
+                  class="btn btn--cta btn--feedback"
+                  (click)="openFeedbackModal(mission)">
+            <fa-icon [icon]="faStar"></fa-icon>
+            <span>Donner un avis</span>
+          </button>
+          
+          <!-- Bouton Voir -->
+          <button *ngIf="getFeedbackActions(mission).includes('view')"
+                  class="btn btn--outline btn--feedback"
+                  (click)="openFeedbackViewModal(mission)">
+            <fa-icon [icon]="faEye"></fa-icon>
+            <span>Voir mon avis</span>
+          </button>
+        </ng-container>
+
+        <!-- DEBUG: Bouton pour forcer le rechargement des données de feedback -->
+        <button *ngIf="mission.statut === 'TERMINEE' || mission.statut === 'PRET_A_CLOTURER'"
+                class="btn btn--outline"
+                style="background: #f0f0f0; color: #666; font-size: 12px; padding: 4px 8px;"
+                (click)="refreshFeedbackData(mission.id)">
+          🔄 Refresh Feedback
         </button>
       </div>
     </div>
@@ -427,11 +467,245 @@
   </div>
 </div>
 
+<!-- + AJOUTER - Feedback Modal Premium -->
+<div class="modal-backdrop premium-modal-backdrop" *ngIf="isFeedbackModalOpen()">
+  <div class="premium-modal-container" (click)="$event.stopPropagation()">
+    
+    <!-- Modal Header Premium -->
+    <header class="premium-modal-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <fa-icon [icon]="faStar" class="star-icon"></fa-icon>
+        </div>
+        <div class="header-text">
+          <h2 class="modal-title">{{ getFeedbackModalTitle() }}</h2>
+          <p class="modal-subtitle" *ngIf="selectedMissionForFeedback() as m">
+            Mission: {{ m.titre }}
+          </p>
+        </div>
+      </div>
+      <button class="premium-close-btn" (click)="closeFeedbackModal()">
+        <fa-icon [icon]="faTimes"></fa-icon>
+      </button>
+    </header>
+
+    <!-- Progress Indicator -->
+    <div class="progress-indicator" *ngIf="getFeedbackModalMode() === 'create' || getFeedbackModalMode() === 'edit'">
+      <div class="progress-steps">
+        <div class="step" [class.active]="true">
+          <div class="step-number">1</div>
+          <span>Évaluation</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="feedbackForm.get('comment')?.valid">
+          <div class="step-number">2</div>
+          <span>Commentaire</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" [class.active]="feedbackForm.valid">
+          <div class="step-number">3</div>
+          <span>Validation</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Window Status Banner -->
+    <div class="status-banner" *ngIf="selectedMissionForFeedback() as m">
+      <ng-container *ngIf="feedbackWindow()[m.id] as w">
+        <div class="banner-content">
+          <fa-icon [icon]="faClockRotateLeft" class="banner-icon"></fa-icon>
+          <div class="banner-text">
+            <span class="banner-title">Fenêtre de feedback active</span>
+            <span class="banner-subtitle">
+              Expire le {{ w.expiresAt | date:'dd/MM/yyyy à HH:mm' }}
+              <span *ngIf="w.clientSubmitted && !w.freelancerSubmitted" class="waiting-badge">
+                En attente de l'autre partie
+              </span>
+            </span>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <div class="premium-modal-content">
+      
+      <!-- Mode Lecture Premium -->
+      <div *ngIf="getFeedbackModalMode() === 'view'" class="premium-feedback-view">
+        <ng-container *ngIf="selectedMissionForFeedback() as m">
+          <ng-container *ngIf="feedbackData()[m.id] as feedback">
+            
+            <!-- Feedback Card -->
+            <div class="feedback-card">
+              <div class="card-header">
+                <div class="header-left">
+                  <div class="rating-display">
+                    <app-stars-rating [value]="feedback.overallRating" [disabled]="true" class="stars-display"></app-stars-rating>
+                    <span class="rating-value">{{ feedback.overallRating }}/5</span>
+                  </div>
+                  <div class="feedback-status">
+                    <span class="status-badge" [class.published]="feedback.publishedAt" [class.pending]="!feedback.publishedAt">
+                      {{ feedback.publishedAt ? 'Publié' : 'En attente' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="header-actions" *ngIf="canModifyFeedback(m)">
+                  <button class="premium-action-btn edit-btn" 
+                          (click)="openFeedbackEditModal(m)"
+                          title="Modifier mon avis">
+                    <fa-icon [icon]="faEdit"></fa-icon>
+                    <span>Modifier</span>
+                  </button>
+                  <button class="premium-action-btn delete-btn" 
+                          (click)="deleteFeedback(m)"
+                          title="Supprimer mon avis">
+                    <fa-icon [icon]="faTimes"></fa-icon>
+                    <span>Supprimer</span>
+                  </button>
+                </div>
+              </div>
+              
+              <div class="feedback-content">
+                <div class="comment-section">
+                  <h4 class="section-title">Votre commentaire</h4>
+                  <div class="comment-text">{{ feedback.comment }}</div>
+                </div>
+                
+                <div class="feedback-meta">
+                  <div class="meta-item">
+                    <fa-icon [icon]="faCalendarAlt" class="meta-icon"></fa-icon>
+                    <span class="meta-label">Soumis le</span>
+                    <span class="meta-value">{{ feedback.submittedAt | date:'dd MMMM yyyy à HH:mm' }}</span>
+                  </div>
+                  <div class="meta-item" *ngIf="feedback.publishedAt">
+                    <fa-icon [icon]="faCheckCircle" class="meta-icon"></fa-icon>
+                    <span class="meta-label">Publié le</span>
+                    <span class="meta-value">{{ feedback.publishedAt | date:'dd MMMM yyyy à HH:mm' }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </ng-container>
+      </div>
+
+      <!-- Mode Création/Modification Premium -->
+      <form *ngIf="getFeedbackModalMode() === 'create' || getFeedbackModalMode() === 'edit'" 
+            [formGroup]="feedbackForm" 
+            (ngSubmit)="getFeedbackModalMode() === 'create' ? submitFeedback() : updateFeedback()" 
+            class="premium-feedback-form">
+        
+        <!-- Evaluation Section -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <fa-icon [icon]="faStar" class="section-icon"></fa-icon>
+              Évaluation détaillée
+            </h3>
+            <p class="section-description">Évaluez différents aspects de la collaboration</p>
+          </div>
+          
+          <div class="rating-grid">
+            <div class="rating-item">
+              <div class="rating-label">
+                <fa-icon [icon]="faCode" class="rating-icon"></fa-icon>
+                <span>Qualité du travail</span>
+              </div>
+              <app-stars-rating formControlName="quality" class="premium-stars"></app-stars-rating>
+            </div>
+            
+            <div class="rating-item">
+              <div class="rating-label">
+                <fa-icon [icon]="faClockRotateLeft" class="rating-icon"></fa-icon>
+                <span>Respect des délais</span>
+              </div>
+              <app-stars-rating formControlName="timeliness" class="premium-stars"></app-stars-rating>
+            </div>
+            
+            <div class="rating-item">
+              <div class="rating-label">
+                <fa-icon [icon]="faInbox" class="rating-icon"></fa-icon>
+                <span>Communication</span>
+              </div>
+              <app-stars-rating formControlName="communication" class="premium-stars"></app-stars-rating>
+            </div>
+            
+            <div class="rating-item">
+              <div class="rating-label">
+                <fa-icon [icon]="faCode" class="rating-icon"></fa-icon>
+                <span>Compétences techniques</span>
+              </div>
+              <app-stars-rating formControlName="technical" class="premium-stars"></app-stars-rating>
+            </div>
+            
+            <div class="rating-item">
+              <div class="rating-label">
+                <fa-icon [icon]="faStar" class="rating-icon"></fa-icon>
+                <span>Appréciation globale</span>
+              </div>
+              <app-stars-rating formControlName="global" class="premium-stars"></app-stars-rating>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comment Section -->
+        <div class="form-section">
+          <div class="section-header">
+            <h3 class="section-title">
+              <fa-icon [icon]="faEdit" class="section-icon"></fa-icon>
+              Commentaire détaillé
+            </h3>
+            <p class="section-description">Partagez votre expérience de collaboration</p>
+          </div>
+          
+          <div class="comment-form-group">
+            <div class="textarea-container">
+              <textarea 
+                formControlName="comment" 
+                placeholder="Décrivez votre expérience de collaboration avec ce freelance. Quels ont été les points forts ? Y a-t-il des améliorations possibles ? Votre avis aide la communauté à faire de meilleurs choix..."
+                class="premium-textarea"
+                rows="6"></textarea>
+              <div class="char-counter">
+                <span [class.warning]="feedbackForm.get('comment')?.value?.length > 700">
+                  {{ feedbackForm.get('comment')?.value?.length || 0 }}/800
+                </span>
+              </div>
+            </div>
+            <div class="error-message" *ngIf="feedbackForm.get('comment')?.invalid && feedbackForm.get('comment')?.touched">
+              <fa-icon [icon]="faExclamationCircle"></fa-icon>
+              <span>Veuillez écrire un commentaire d'au moins 30 caractères</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Section -->
+        <div class="form-actions">
+          <button type="button" class="premium-btn secondary" (click)="closeFeedbackModal()">
+            <span>Annuler</span>
+          </button>
+          <button type="submit" 
+                  class="premium-btn primary" 
+                  [disabled]="feedbackForm.invalid || isSubmittingFeedback()"
+                  [class.loading]="isSubmittingFeedback()">
+            <div class="btn-content">
+              <fa-icon *ngIf="isSubmittingFeedback()" [icon]="faSpinner" spin class="btn-icon"></fa-icon>
+              <fa-icon *ngIf="!isSubmittingFeedback()" [icon]="faSave" class="btn-icon"></fa-icon>
+              <span class="btn-text">
+                {{ getFeedbackModalMode() === 'create' ? 'Publier mon avis' : 'Mettre à jour' }}
+              </span>
+            </div>
+            <div class="btn-shine"></div>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Detail Overlay -->
 <div class="detail-overlay-backdrop" *ngIf="isDetailOverlayOpen()" (click)="closeMissionDetail()">
   <div class="detail-overlay-content" (click)="$event.stopPropagation()">
     <div class="detail-overlay-header">
-      <button class="close-detail-btn" (click)="closeMissionDetail()">
+      <button class="close-detail-btn" (click)="closeMissionDetail(); $event.stopPropagation()">
         <fa-icon [icon]="faTimes"></fa-icon>
       </button>
     </div>

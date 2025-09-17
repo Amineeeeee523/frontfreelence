@@ -1,0 +1,141 @@
+// === VARIANTES DE TITRE POUR MISSION DETAIL ===
+// Ce fichier contient les deux variantes de style pour le titre de mission
+// Copiez la variante souhaitée dans le fichier principal mission-detail.component.scss
+
+// === VARIANTE A : Titre en encre + soulignement dégradé ===
+// Avantages : Excellente lisibilité, contraste AA+ garanti, élégance subtile
+// Contraste : ~15:1 (excellent) - Titre noir sur fond blanc/très clair
+
+.mission-title--variant-a {
+  font-size: clamp(1.75rem, 4vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.15px;
+  margin: 0 0 var(--space-4) 0;
+  color: var(--title-ink); // #0F172A - Encre quasi-noire
+  position: relative;
+  
+  // Gestion du texte long avec ellipsis (2 lignes max)
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  max-width: 100%;
+  word-break: break-word;
+  
+  // Soulignement dégradé mauve→cyan (3px, radius 6px)
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-500), var(--info-500));
+    border-radius: var(--radius-sm);
+    opacity: 0.8;
+    transform: scaleX(0.8);
+    transition: transform var(--transition-normal);
+  }
+  
+  // Hover effect sur le soulignement
+  &:hover::after {
+    transform: scaleX(1);
+  }
+  
+  // Responsive : réduction sur mobile
+  @media (max-width: 768px) {
+    font-size: clamp(1.5rem, 3.5vw, 1.75rem);
+    line-height: 1.3;
+    letter-spacing: 0.1px;
+    
+    &::after {
+      height: 2px;
+      bottom: -6px;
+    }
+  }
+}
+
+// === VARIANTE B : Titre en mauve-800 + stroke 1px ===
+// Avantages : Identité mauve forte, contraste AA garanti, effet premium
+// Contraste : ~6:1 (AA+) - Titre mauve sombre avec stroke blanc sur fond clair
+
+.mission-title--variant-b {
+  font-size: clamp(1.75rem, 4vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.15px;
+  margin: 0 0 var(--space-4) 0;
+  color: var(--title-mauve-800); // #6D28D9 - Mauve sombre
+  position: relative;
+  
+  // Gestion du texte long avec ellipsis (2 lignes max)
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  max-width: 100%;
+  word-break: break-word;
+  
+  // Stroke 1px blanc à 35% d'opacité pour renforcer les bords
+  text-shadow: 
+    1px 1px 0 var(--title-stroke),
+    -1px -1px 0 var(--title-stroke),
+    1px -1px 0 var(--title-stroke),
+    -1px 1px 0 var(--title-stroke);
+  
+  // Accent subtil : barre fine en cyan sous le titre
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 60%;
+    height: 2px;
+    background: var(--info-500);
+    border-radius: var(--radius-sm);
+    opacity: 0.6;
+    transform: scaleX(0.7);
+    transition: transform var(--transition-normal);
+  }
+  
+  // Hover effect sur la barre d'accent
+  &:hover::after {
+    transform: scaleX(1);
+  }
+  
+  // Responsive : réduction sur mobile
+  @media (max-width: 768px) {
+    font-size: clamp(1.5rem, 3.5vw, 1.75rem);
+    line-height: 1.3;
+    letter-spacing: 0.1px;
+    
+    &::after {
+      height: 1px;
+      bottom: -4px;
+    }
+  }
+}
+
+// === NOTES DE CONTRASTE ===
+// 
+// VARIANTE A (Titre encre + soulignement) :
+// - Titre : #0F172A sur fond blanc/très clair
+// - Contraste calculé : ~15:1 (excellent, dépasse AAA)
+// - Lisibilité : Parfaite sur tous les écrans
+// - Accessibilité : AA+ garanti
+//
+// VARIANTE B (Titre mauve + stroke) :
+// - Titre : #6D28D9 avec stroke blanc 35% sur fond clair
+// - Contraste calculé : ~6:1 (bon, dépasse AA)
+// - Lisibilité : Excellente grâce au stroke
+// - Accessibilité : AA garanti
+//
+// RECOMMANDATION : 
+// - Variante A pour une lisibilité maximale et un design épuré
+// - Variante B pour une identité mauve plus marquée
+// - Les deux respectent les standards d'accessibilité WCAG 2.1 AA

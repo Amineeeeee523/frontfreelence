@@ -34,9 +34,9 @@ export class AuthService {
         switchMap(() => this.fetchMe()),
         tap(user => {
           if (user.typeUtilisateur === TypeUtilisateur.FREELANCE) {
-            this.router.navigate(['/freelencer/dashboard']);
+            this.router.navigate(['/freelencer']);
           } else {
-            this.router.navigate(['/client/dashboard']);
+            this.router.navigate(['/client']);
           }
         }),
         map(() => undefined)
@@ -49,9 +49,9 @@ export class AuthService {
       switchMap(() => this.fetchMe()),
       tap(user => {
         if (user.typeUtilisateur === TypeUtilisateur.FREELANCE) {
-          this.router.navigate(['/freelencer/dashboard']);
+          this.router.navigate(['/freelencer']);
         } else {
-          this.router.navigate(['/client/dashboard']);
+          this.router.navigate(['/client']);
         }
       }),
       map(() => undefined)

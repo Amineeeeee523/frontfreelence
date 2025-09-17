@@ -1,10 +1,9 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, OnInit } from '@angular/core';
+import { RouterOutlet, Router } from '@angular/router';
 import { AsyncPipe, NgClass } from '@angular/common';
 import { Observable } from 'rxjs';
 
 import { SidebarclientComponent } from '../sidebarclient/sidebarclient.component';
-import { NavbarclientComponent } from '../navbarclient/navbarclient.component';
 import { SidebarStateService } from '../../core/sidebar-state.service';
 
 @Component({
@@ -13,17 +12,26 @@ import { SidebarStateService } from '../../core/sidebar-state.service';
   imports: [
     RouterOutlet,
     SidebarclientComponent,
-    NavbarclientComponent,
     AsyncPipe,
     NgClass
   ],
   templateUrl: './client-layout.component.html',
   styleUrls: ['./client-layout.component.scss']
 })
-export class ClientLayoutComponent {
+export class ClientLayoutComponent implements OnInit {
   isSidebarCollapsed$: Observable<boolean>;
 
-  constructor(private sidebarState: SidebarStateService) {
+  constructor(
+    private sidebarState: SidebarStateService,
+    private router: Router
+  ) {
     this.isSidebarCollapsed$ = this.sidebarState.isCollapsed$;
+  }
+
+  ngOnInit(): void {
+    // Rediriger vers explorer-freelances si on est sur la route racine client
+    if (this.router.url === '/client') {
+      this.router.navigate(['/client/explorer-freelances']);
+    }
   }
 } 

@@ -1,7 +1,6 @@
 <div class="freelencer-layout">
   <app-sidebarfreelencer></app-sidebarfreelencer>
   <main class="content" [class.collapsed]="isSidebarCollapsed$ | async">
-    <app-navbar-freelencer></app-navbar-freelencer>
     <router-outlet></router-outlet>
   </main>
 </div> 

@@ -8,15 +8,15 @@ import { AuthGuard } from './guards/auth.guard';
 import { FreelanceGuard } from './guards/freelance.guard';
 import { ClientGuard } from './guards/client.guard';
 
-import { DashboardfreelencerComponent } from './freelencer/dashboardfreelencer/dashboardfreelencer.component';
 import { SwipefreelencerComponent } from './freelencer/swipefreelencer/swipefreelencer.component';
 import { ChattingfreelencerComponent } from './freelencer/chattingfreelencer/chattingfreelencer.component';
 import { MissionfreelencerComponent } from './freelencer/missionfreelencer/missionfreelencer.component';
 import { ProfilefreelencerComponent } from './freelencer/profilefreelencer/profilefreelencer.component';
+import { PaiementfreelencerComponent } from './freelencer/paiementfreelencer/paiementfreelencer.component';
+// Note: use lazy loadComponent to avoid path resolution issues
 import { FreelencerLayoutComponent } from './freelencer/freelencer-layout/freelencer-layout.component';
 
 import { ClientLayoutComponent } from './client/client-layout/client-layout.component';
-import { DashboardclientComponent } from './client/dashboardclient/dashboardclient.component';
 import { MissionsclientComponent } from './client/missionsclient/missionsclient.component';
 import { FreelenncersintresetedComponent } from './client/freelenncersintreseted/freelenncersintreseted.component';
 import { SwipeclientComponent } from './client/swipeclient/swipeclient.component';
@@ -37,11 +37,16 @@ export const routes: Routes = [
         component: FreelencerLayoutComponent,
         canActivate: [AuthGuard, FreelanceGuard],
         children: [
-            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-            { path: 'dashboard', component: DashboardfreelencerComponent },
+            { path: '', redirectTo: 'swipe', pathMatch: 'full' },
             { path: 'swipe', component: SwipefreelencerComponent },
             { path: 'chat', component: ChattingfreelencerComponent },
             { path: 'projects', component: MissionfreelencerComponent },
+            { path: 'paiements', component: PaiementfreelencerComponent },
+            { 
+                path: 'paiements/mission/:id', 
+                loadComponent: () => import('./freelencer/mission-detail-freelancer/mission-detail-freelancer.component')
+                  .then(m => m.MissionDetailFreelancerComponent)
+            },
             { path: 'profile', component: ProfilefreelencerComponent },
         ]
     },
@@ -51,8 +56,7 @@ export const routes: Routes = [
         component: ClientLayoutComponent,
         canActivate: [AuthGuard, ClientGuard],
         children: [
-            { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-            { path: 'dashboard', component: DashboardclientComponent },
+            { path: '', redirectTo: 'explorer-freelances', pathMatch: 'full' },
             { path: 'mes-missions', component: MissionsclientComponent },
             { path: 'freelances-interesses', component: FreelenncersintresetedComponent },
             { path: 'explorer-freelances', component: SwipeclientComponent },
