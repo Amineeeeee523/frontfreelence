@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 
 import { MatchNotification } from './models/match-notification.model';
 import { MatchNotificationService } from './services/match-notification.service';
+import { NotificationSocketService } from './services/notification-socket.service';
 import { AuthService } from './services/auth.service';
 import { TypeUtilisateur } from './models/utilisateur.model';
 
@@ -26,6 +27,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(
     private matchService: MatchNotificationService,
+    private notificationSocket: NotificationSocketService,
     private authService: AuthService,
     private router: Router
   ) {}
@@ -37,6 +39,16 @@ export class AppComponent implements OnInit, OnDestroy {
       this.matchPopup = notif;
     });
     this.subscriptions.add(sub);
+
+    // Connexion globale au WS des notifications app-wide (diagnostic + préchauffage)
+    console.log('[AppComponent] Init WS Notifications: connect()');
+    this.notificationSocket.connect();
+    this.notificationSocket.getConnectionState$?.().subscribe(state => {
+      console.log('[AppComponent] WS Notifications state ->', state);
+    });
+    this.notificationSocket.notifications$.subscribe(dto => {
+      console.log('[AppComponent] WS Notifications message reçu', dto);
+    });
   }
 
   ngOnDestroy(): void {

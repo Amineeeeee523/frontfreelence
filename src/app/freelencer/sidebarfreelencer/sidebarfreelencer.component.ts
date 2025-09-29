@@ -17,6 +17,13 @@ import { SidebarStateService } from '../../core/sidebar-state.service';
 import { AuthService } from '../../services/auth.service';
 import { Utilisateur } from '../../models/utilisateur.model';
 import { Observable } from 'rxjs';
+import { NotificationService } from '../../services/notification.service';
+import { NotificationSocketService } from '../../services/notification-socket.service';
+import { NotificationEntity } from '../../models/notification.model';
+import { NotificationDto } from '../../models/notification-dto.model';
+import { NotificationCategory } from '../../models/notification-category.enum';
+import { NotificationPriority } from '../../models/notification-priority.enum';
+import { NotificationType } from '../../models/notification-type.enum';
 
 // Types pour les notifications statiques
 type NotifType = 'MESSAGE' | 'MISSION' | 'PAIEMENT' | 'SYSTEME';
@@ -91,7 +98,9 @@ export class SidebarfreelencerComponent implements OnInit {
   constructor(
     private sidebarState: SidebarStateService,
     private authService: AuthService,
-    public router: Router
+    public router: Router,
+    private notificationService: NotificationService,
+    private notificationSocket: NotificationSocketService
   ) {
     this.isCollapsed$ = this.sidebarState.isCollapsed$;
     this.user$ = this.authService.user$;
@@ -101,77 +110,51 @@ export class SidebarfreelencerComponent implements OnInit {
     // Assure que la sidebar est ouverte par défaut côté freelance
     this.sidebarState.setCollapsed(false);
     
-    // Initialiser les notifications statiques
+    // Charger les notifications depuis le backend
+    console.log('[SidebarFreelencer] Chargement initial des notifications');
     this.initializeMockNotifications();
+
+    // WS temps réel
+    this.notificationSocket.connect();
+    console.log('[SidebarFreelencer] WS endpoint utilisé:', (this.notificationSocket as any).WS_ENDPOINT ?? 'privé');
+    this.notificationSocket.getConnectionState$?.().subscribe((state: any) => {
+      console.log('[SidebarFreelencer] WS state changed ->', state);
+    });
+    this.notificationSocket.notifications$.subscribe(dto => {
+      console.log('[SidebarFreelencer] WS notification reçue', dto);
+      const mapped = this.mapDtoToMock(dto);
+      this.notifications = [mapped, ...this.notifications];
+    });
+    setTimeout(() => {
+      if (this.notifications.length === 0) {
+        console.warn('[SidebarFreelencer] Aucune notif WS reçue après 10s. Checks:', {
+          wsConnected: this.notificationSocket.isConnected?.(),
+          endpoint: (this.notificationSocket as any).WS_ENDPOINT ?? 'privé'
+        });
+      }
+    }, 10000);
   }
 
   /**
-   * Initialise les notifications statiques (mock)
-   * TODO: Remplacer par service plus tard
+   * Charge les notifications depuis le backend (REST)
    */
   private initializeMockNotifications(): void {
-    this.notifications = [
-      {
-        id: '1',
-        type: 'MESSAGE',
-        title: 'Nouveau message de Sarah',
-        snippet: 'Bonjour ! J\'ai une question concernant la mission...',
-        createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 min ago
-        read: false,
-        severity: 'info',
-        entityRef: { kind: 'message', id: 'msg-123' }
+    console.log('[SidebarFreelencer] Chargement initial des notifications depuis le backend');
+    this.notificationService.list(0, 20).subscribe({
+      next: (page) => {
+        console.log('[SidebarFreelencer] REST notifications reçues', { 
+          totalElements: page.totalElements, 
+          content: page.content.length,
+          firstPage: page.first,
+          lastPage: page.last 
+        });
+        this.notifications = page.content.map(n => this.mapEntityToMock(n));
       },
-      {
-        id: '2',
-        type: 'MISSION',
-        title: 'Nouvelle mission disponible',
-        snippet: 'Développement web - Site e-commerce',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2h ago
-        read: false,
-        severity: 'warning',
-        entityRef: { kind: 'mission', id: 'mission-456' }
-      },
-      {
-        id: '3',
-        type: 'PAIEMENT',
-        title: 'Paiement reçu',
-        snippet: 'Mission #123 - 500 TND reçus avec succès',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-        read: true,
-        severity: 'info',
-        entityRef: { kind: 'paiement', id: 'pay-789' }
-      },
-      {
-        id: '4',
-        type: 'SYSTEME',
-        title: 'Maintenance prévue',
-        snippet: 'Le site sera indisponible le 15/12 de 2h à 4h',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), // 2 days ago
-        read: false,
-        severity: 'critical',
-        entityRef: { kind: 'mission', id: 'system-001' }
-      },
-      {
-        id: '5',
-        type: 'MISSION',
-        title: 'Nouveau match !',
-        snippet: 'Sarah est intéressée par votre profil',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString(), // 3 days ago
-        read: true,
-        severity: 'info',
-        entityRef: { kind: 'mission', id: 'mission-789' }
-      },
-      {
-        id: '6',
-        type: 'PAIEMENT',
-        title: 'Paiement en attente',
-        snippet: 'Mission #456 - En attente de validation',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 4).toISOString(), // 4 days ago
-        read: true,
-        severity: 'warning',
-        entityRef: { kind: 'paiement', id: 'pay-456' }
+      error: (err) => {
+        console.error('[SidebarFreelencer] Erreur chargement notifications REST', err);
+        this.notifications = []; // Liste vide en cas d'erreur
       }
-    ];
+    });
   }
 
   /**
@@ -253,6 +236,13 @@ export class SidebarfreelencerComponent implements OnInit {
    */
   toggleNotifications(): void {
     this.isNotificationsOpen = !this.isNotificationsOpen;
+    if (this.isNotificationsOpen) {
+      console.log('[SidebarFreelencer] Drawer ouvert → mark seen sur les notifs visibles non lues');
+      const toSee = this.getFilteredNotifications()
+        .filter(n => !n.read)
+        .map(n => Number(n.id));
+      toSee.forEach(id => this.notificationService.markSeen(id).subscribe());
+    }
   }
 
   /**
@@ -273,14 +263,27 @@ export class SidebarfreelencerComponent implements OnInit {
    * Marque une notification comme lue/non lue
    */
   toggleNotificationRead(notification: NotificationMock): void {
-    notification.read = !notification.read;
+    const willBeRead = !notification.read;
+    if (willBeRead) {
+      console.log('[SidebarFreelencer] Mark read', notification.id);
+      this.notificationService.markRead([Number(notification.id)]).subscribe(() => {
+        notification.read = true;
+      });
+    } else {
+      notification.read = false;
+    }
   }
 
   /**
    * Marque toutes les notifications comme lues
    */
   markAllAsRead(): void {
-    this.notifications.forEach(n => n.read = true);
+    console.log('[SidebarFreelencer] Mark all as read');
+    const toMark = this.notifications.filter(n => !n.read).map(n => Number(n.id));
+    if (toMark.length === 0) return;
+    this.notificationService.markRead(toMark).subscribe(() => {
+      this.notifications = this.notifications.map(n => ({ ...n, read: true }));
+    });
   }
 
   /**
@@ -289,12 +292,17 @@ export class SidebarfreelencerComponent implements OnInit {
   onNotificationClick(notification: NotificationMock): void {
     // Marquer comme lue
     if (!notification.read) {
-      notification.read = true;
+      this.notificationService.markRead([Number(notification.id)]).subscribe(() => {
+        notification.read = true;
+      });
     }
 
     // TODO: Navigation future
     console.log('Notification clicked:', notification);
     
+    // Notifier backend du clic
+    console.log('[SidebarFreelencer] Click notif', notification.id);
+    this.notificationService.click(Number(notification.id)).subscribe();
     // Exemple de navigation future (commenté pour l'instant)
     // if (notification.entityRef) {
     //   switch (notification.entityRef.kind) {
@@ -367,5 +375,87 @@ export class SidebarfreelencerComponent implements OnInit {
     // TODO: Navigation vers la page de modification du profil
     console.log('Édition du profil');
     this.router.navigate(['/freelencer/profile']);
+  }
+
+  // ----- Mapping helpers -----
+  private mapEntityToMock(n: NotificationEntity): NotificationMock {
+    return {
+      id: String(n.id),
+      type: this.mapCategoryToType(n.category),
+      title: n.title,
+      snippet: n.body || this.extractSnippetFromDataString(n.data),
+      createdAt: n.createdAt,
+      read: n.readAt != null,
+      severity: this.mapSeverity(n.priority, n.type)
+    };
+  }
+
+  private mapDtoToMock(d: NotificationDto): NotificationMock {
+    return {
+      id: String(d.id),
+      type: this.mapTypeToNotifType(d.type),
+      title: d.title,
+      snippet: this.extractSnippetFromData(d.data),
+      createdAt: d.createdAt,
+      read: false,
+      severity: this.mapSeverity(undefined, d.type)
+    };
+  }
+
+  private mapCategoryToType(cat: NotificationCategory): NotifType | 'SYSTEME' {
+    switch (cat) {
+      case NotificationCategory.MESSAGE: return 'MESSAGE';
+      case NotificationCategory.MISSION: return 'MISSION';
+      case NotificationCategory.PAYMENT:
+      case NotificationCategory.WITHDRAWAL: return 'PAIEMENT';
+      case NotificationCategory.MATCH:
+      case NotificationCategory.DELIVERABLE: return 'MISSION';
+      default: return 'SYSTEME';
+    }
+  }
+
+  private mapTypeToNotifType(t: NotificationType): NotifType | 'SYSTEME' {
+    switch (t) {
+      case NotificationType.MESSAGE_RECEIVED: return 'MESSAGE';
+      case NotificationType.MISSION_STATUS_CHANGED:
+      case NotificationType.MISSION_DEADLINE_SOON:
+      case NotificationType.MATCH_CREATED:
+      case NotificationType.DELIVERABLE_SENT:
+      case NotificationType.DELIVERABLE_VALIDATED:
+      case NotificationType.DELIVERABLE_REJECTED: return 'MISSION';
+      case NotificationType.TRANCHE_LINK_READY:
+      case NotificationType.TRANCHE_PAID:
+      case NotificationType.TRANCHE_VALIDATED:
+      case NotificationType.TRANCHE_ERROR:
+      case NotificationType.WITHDRAWAL_PAID:
+      case NotificationType.WITHDRAWAL_ERROR: return 'PAIEMENT';
+      default: return 'SYSTEME';
+    }
+  }
+
+  private mapSeverity(priority?: NotificationPriority, type?: NotificationType): NotifSeverity {
+    if (type && String(type).endsWith('ERROR')) return 'critical';
+    switch (priority) {
+      case NotificationPriority.CRITICAL: return 'critical';
+      case NotificationPriority.HIGH: return 'warning';
+      case NotificationPriority.NORMAL:
+      case NotificationPriority.LOW:
+      default: return 'info';
+    }
+  }
+
+  private extractSnippetFromDataString(data?: string): string | undefined {
+    if (!data) return undefined;
+    try {
+      const parsed = JSON.parse(data);
+      return this.extractSnippetFromData(parsed);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private extractSnippetFromData(data: any): string | undefined {
+    if (!data) return undefined;
+    return data.snippet || data.body || data.message || data.missionTitle || undefined;
   }
 }

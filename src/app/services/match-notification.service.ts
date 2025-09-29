@@ -1,7 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import SockJS from 'sockjs-client';
-import { CompatClient, IMessage, Stomp } from '@stomp/stompjs';
+import { Client, IMessage } from '@stomp/stompjs';
 
 import { environment } from '../../environments/environment';
 import { MatchNotification } from '../models/match-notification.model';
@@ -10,7 +10,7 @@ import { MatchNotification } from '../models/match-notification.model';
 export class MatchNotificationService {
   private readonly WS_ENDPOINT = environment.apiUrl.replace('/api', '') + '/ws';
 
-  private stompClient?: CompatClient;
+  private client?: Client;
   private connected$ = new BehaviorSubject<boolean>(false);
 
   private matchSubject = new Subject<MatchNotification>();
@@ -25,24 +25,25 @@ export class MatchNotificationService {
       return;
     }
 
-    const socket = new (SockJS as any)(this.WS_ENDPOINT, undefined, { withCredentials: true });
-    this.stompClient = Stomp.over(socket);
-    // Désactiver logs si nécessaire
-    this.stompClient.debug = () => {};
-
-    this.stompClient.connect(
-      {},
-      () => {
-        this.connected$.next(true);
-        this.zone.run(() => this.subscribeToMatches());
-      },
-      () => this.connected$.next(false)
-    );
+    const client = new Client({
+      webSocketFactory: () => new (SockJS as any)(this.WS_ENDPOINT, undefined, { withCredentials: true }),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 15000,
+      heartbeatOutgoing: 15000,
+      debug: () => {}
+    });
+    client.onConnect = () => {
+      this.connected$.next(true);
+      this.zone.run(() => this.subscribeToMatches());
+    };
+    client.onWebSocketClose = () => this.connected$.next(false);
+    this.client = client;
+    client.activate();
   }
 
   /** Souscription à la file personnelle des matchs */
   private subscribeToMatches(): void {
-    this.stompClient?.subscribe('/user/queue/matches', (message: IMessage) => {
+    this.client?.subscribe('/user/queue/matches', (message: IMessage) => {
       if (message.body) {
         const payload: MatchNotification = JSON.parse(message.body);
         // Re-passage dans l'Angular zone pour détecter les changements
@@ -57,8 +58,9 @@ export class MatchNotificationService {
   }
 
   public disconnect(): void {
-    if (this.connected$.value) {
-      this.stompClient?.disconnect(() => this.connected$.next(false));
+    if (this.client?.active) {
+      this.client.deactivate();
+      this.connected$.next(false);
     }
   }
 } 

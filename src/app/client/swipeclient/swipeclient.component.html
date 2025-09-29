@@ -134,7 +134,10 @@
 
                 <!-- Meta Grid -->
                 <div class="mission-meta">
-                  <div class="meta-item budget" *ngIf="getTarifLabelValue(freelancer) as tarif"><fa-icon [icon]="faEuroSign"></fa-icon> {{ tarif.value }}</div>
+                  <div class="meta-item budget" *ngIf="getTarifLabelValue(freelancer) as tarif">
+                    <span class="currency-chip">DT</span>
+                    {{ tarif.value }}
+                  </div>
                   <div class="meta-item duration" *ngIf="freelancer.chargeHebdoSouhaiteeJours"><fa-icon [icon]="faClock"></fa-icon> {{ freelancer.chargeHebdoSouhaiteeJours }} j/sem</div>
                   <div class="meta-item modality" *ngIf="freelancer.mobilite"><fa-icon [icon]="faBriefcase"></fa-icon> {{ freelancer.mobilite }}</div>
                   <div class="meta-item category" *ngIf="freelancer.niveauExperience"><fa-icon [icon]="faStar"></fa-icon> {{ freelancer.niveauExperience | titlecase }}</div>

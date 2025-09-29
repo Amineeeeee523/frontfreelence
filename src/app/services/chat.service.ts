@@ -2,7 +2,7 @@ import { Injectable, NgZone } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import SockJS from 'sockjs-client';
-import { CompatClient, IMessage, Stomp } from '@stomp/stompjs';
+import { Client, IMessage } from '@stomp/stompjs';
 import { filter, take } from 'rxjs/operators'; // Ajout utilitaires RxJS
 
 import { environment } from '../../environments/environment';
@@ -15,7 +15,7 @@ export class ChatService {
   private readonly api = `${environment.apiUrl}/chat`;
   private readonly WS_ENDPOINT = environment.apiUrl.replace('/api', '') + '/ws';
 
-  private stompClient?: CompatClient;
+  private client?: Client;
   private connected$ = new BehaviorSubject<boolean>(false);
 
   // Flux optimiste : message poussé immédiatement côté UI
@@ -64,24 +64,28 @@ export class ChatService {
 
     console.log('[ChatService] Initialisation de la connexion WS', this.WS_ENDPOINT);
 
-    const socket = new (SockJS as any)(this.WS_ENDPOINT, undefined, { withCredentials: true });
-    this.stompClient = Stomp.over(socket);
-    // Désactiver logs STOMP (optionnel)
-    this.stompClient.debug = () => {};
+    const client = new Client({
+      webSocketFactory: () => new (SockJS as any)(this.WS_ENDPOINT, undefined, { withCredentials: true }),
+      reconnectDelay: 5000,
+      heartbeatIncoming: 15000,
+      heartbeatOutgoing: 15000,
+      debug: () => {}
+    });
 
-    this.stompClient.connect(
-      {},
-      () => {
-        console.log('[ChatService] STOMP connecté');
-        this.connected$.next(true);
-        this.zone.run(() => this.subscribeAck());
-      },
-      () => this.connected$.next(false)
-    );
+    client.onConnect = () => {
+      console.log('[ChatService] STOMP connecté');
+      this.connected$.next(true);
+      this.zone.run(() => this.subscribeAck());
+    };
+
+    client.onWebSocketClose = () => this.connected$.next(false);
+
+    this.client = client;
+    client.activate();
   }
 
   private subscribeAck(): void {
-    this.stompClient?.subscribe('/user/queue/ack', (message: IMessage) => {
+    this.client?.subscribe('/user/queue/ack', (message: IMessage) => {
       if (message.body) {
         const payload: ChatMessage = JSON.parse(message.body);
         this.zone.run(() => this.ackSubject.next(payload));
@@ -108,7 +112,7 @@ export class ChatService {
     this.ensureConnection();
 
     const publish = () => {
-      this.stompClient?.publish({
+      this.client?.publish({
         destination: '/app/chat/send',
         body: JSON.stringify({ ...req, tempId }),
       });
@@ -122,8 +126,9 @@ export class ChatService {
   }
 
   disconnect(): void {
-    if (this.connected$.value) {
-      this.stompClient?.disconnect(() => this.connected$.next(false));
+    if (this.client?.active) {
+      this.client.deactivate();
+      this.connected$.next(false);
     }
   }
 } 

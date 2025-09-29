@@ -162,8 +162,8 @@ export class SwipeclientComponent implements OnInit {
   }
 
   getTarifLabelValue(f: FreelancerViewModel): { label: string; value: string } | null {
-    if (typeof f.tarifJournalier === 'number') return { label: 'TJM', value: `${f.tarifJournalier}€` };
-    if (typeof f.tarifHoraire === 'number') return { label: 'Taux horaire', value: `${f.tarifHoraire}€` };
+    if (typeof f.tarifJournalier === 'number') return { label: 'TJM', value: `${f.tarifJournalier} DT` };
+    if (typeof f.tarifHoraire === 'number') return { label: 'Taux horaire', value: `${f.tarifHoraire} DT` };
     return null;
   }
 
